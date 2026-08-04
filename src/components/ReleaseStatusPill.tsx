@@ -6,7 +6,14 @@ const STYLES: Record<ReleaseStatus, string> = {
   旧作: "bg-gray-100 text-gray-500",
 };
 
-export default function ReleaseStatusPill({ status }: { status: ReleaseStatus }) {
+export default function ReleaseStatusPill({
+  status,
+}: {
+  status: ReleaseStatus | null;
+}) {
+  if (!status) {
+    return <span className="text-xs text-gray-300">(対象外)</span>;
+  }
   return (
     <span
       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STYLES[status]}`}

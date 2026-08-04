@@ -1,5 +1,5 @@
-import TitleListPage from "@/components/TitleListPage";
+import ProductListPage from "@/components/ProductListPage";
 
 export default function Home() {
-  return <TitleListPage />;
+  return <ProductListPage />;
 }

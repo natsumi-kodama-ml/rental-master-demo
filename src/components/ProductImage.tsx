@@ -1,22 +1,20 @@
-import { Genre } from "@/lib/types";
+import { Category } from "@/lib/types";
 
-const GENRE_EMOJI: Record<Genre, string> = {
-  邦画: "🎬",
-  洋画: "🎞️",
-  アニメ: "📺",
-  ドラマ: "🎭",
+const CATEGORY_EMOJI: Record<Category, string> = {
   ゲーム: "🎮",
-  音楽: "🎵",
+  "DVD・ブルーレイ": "🎬",
+  CD: "🎵",
+  コミック: "📖",
 };
 
-export default function TitleImage({
+export default function ProductImage({
   imageUrl,
-  genre,
+  category,
   alt,
   className = "",
 }: {
   imageUrl: string;
-  genre: Genre;
+  category: Category;
   alt: string;
   className?: string;
 }) {
@@ -31,7 +29,7 @@ export default function TitleImage({
       className={`flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 ${className}`}
       aria-hidden="true"
     >
-      <span>{GENRE_EMOJI[genre] ?? "🎬"}</span>
+      <span>{CATEGORY_EMOJI[category] ?? "🎬"}</span>
     </div>
   );
 }
