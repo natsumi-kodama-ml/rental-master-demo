@@ -18,9 +18,14 @@ export const RELEASE_STATUSES = ["新作", "準新作", "旧作"] as const;
 
 export type ReleaseStatus = (typeof RELEASE_STATUSES)[number];
 
-// レンタル対象になるのはDVD・ブルーレイとCD。ゲーム・コミックは販売のみ。
+// レンタル対象になるのはDVD・ブルーレイ/CD/コミック。ゲームのみ販売専用。
 export function isRentalCategory(category: Category): boolean {
-  return category === "DVD・ブルーレイ" || category === "CD";
+  return category !== "ゲーム";
+}
+
+// 買取に対応するのはゲームのみ。
+export function isBuybackCategory(category: Category): boolean {
+  return category === "ゲーム";
 }
 
 // 商品マスタ: 「商品そのもの」の情報のみを持つ。在庫数・価格は持たない。
@@ -63,3 +68,32 @@ export interface Inventory {
 }
 
 export type InventoryInput = Omit<Inventory, "productId" | "updatedAt">;
+
+export const COPY_STATUSES = ["在庫中", "貸出中", "修理中", "廃棄"] as const;
+
+export type CopyStatus = (typeof COPY_STATUSES)[number];
+
+// 個体(コピー): レンタル対象カテゴリの「1枚1枚」を管理する。
+// 在庫数・貸出中数はここから集計するため、Inventory.stock とは別管理。
+export interface Copy {
+  id: string;
+  productId: string;
+  copyCode: string;
+  status: CopyStatus;
+  condition: string;
+  createdAt: string;
+}
+
+export type CopyInput = Omit<Copy, "id" | "createdAt">;
+
+// 貸出履歴: 個体単位で「誰に・いつ・いつまで」貸したかを記録する。
+// returnedAt が null なら現在貸出中。
+export interface RentalLog {
+  id: string;
+  copyId: string;
+  productId: string;
+  borrowerName: string;
+  rentedAt: string;
+  dueDate: string;
+  returnedAt: string | null;
+}

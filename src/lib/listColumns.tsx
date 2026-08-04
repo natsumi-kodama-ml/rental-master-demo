@@ -1,11 +1,27 @@
 import { ReactNode } from "react";
-import { Inventory, Product, isRentalCategory } from "./types";
+import { Copy, Inventory, Product, isRentalCategory } from "./types";
 import PublishStatusBadge from "@/components/PublishStatusBadge";
 import ReleaseStatusPill from "@/components/ReleaseStatusPill";
 
 export interface ProductRow {
   product: Product;
   inventory: Inventory | undefined;
+  copies: Copy[];
+}
+
+// レンタル対象は在庫個体(Copy)から集計し、それ以外は Inventory.stock を使う。
+export function getStockCount(row: ProductRow): number {
+  if (isRentalCategory(row.product.category)) {
+    return row.copies.filter((c) => c.status === "在庫中").length;
+  }
+  return row.inventory?.stock ?? 0;
+}
+
+export function getTotalCopyCount(row: ProductRow): number {
+  if (isRentalCategory(row.product.category)) {
+    return row.copies.filter((c) => c.status !== "廃棄").length;
+  }
+  return row.inventory?.stock ?? 0;
 }
 
 export type ColumnKey =
@@ -85,10 +101,13 @@ export const COLUMN_DEFS: ColumnDef[] = [
   },
   {
     key: "stock",
-    label: "在庫数",
+    label: "在庫数(在庫中/総数)",
     align: "right",
-    render: (r) => (r.inventory ? r.inventory.stock : "-"),
-    sortValue: (r) => r.inventory?.stock ?? -1,
+    render: (r) =>
+      isRentalCategory(r.product.category)
+        ? `${getStockCount(r)} / ${getTotalCopyCount(r)}`
+        : String(getStockCount(r)),
+    sortValue: (r) => getStockCount(r),
   },
   {
     key: "releaseStatus",

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useProducts } from "@/hooks/useProducts";
 import { useInventory } from "@/hooks/useInventory";
+import { useCopies } from "@/hooks/useCopies";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ProductRow } from "@/lib/listColumns";
 import ProductFilters from "./ProductFilters";
@@ -13,6 +14,7 @@ import ColumnSettings from "./ColumnSettings";
 export default function ProductListPage() {
   const { products } = useProducts();
   const { inventory } = useInventory();
+  const { copies } = useCopies();
   const { visibleColumns } = useColumnVisibility();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -24,8 +26,9 @@ export default function ProductListPage() {
       products.map((product) => ({
         product,
         inventory: inventory.find((i) => i.productId === product.id),
+        copies: copies.filter((c) => c.productId === product.id),
       })),
-    [products, inventory]
+    [products, inventory, copies]
   );
 
   const genreOptions = useMemo(

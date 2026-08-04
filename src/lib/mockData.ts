@@ -1,4 +1,4 @@
-import { Inventory, Product } from "./types";
+import { Copy, Inventory, Product, RentalLog } from "./types";
 
 export const mockProducts: Product[] = [
   {
@@ -155,11 +155,11 @@ export const mockProducts: Product[] = [
     maker: "白夜書房(仮)",
     platform: "コミック",
     releaseDate: "2026-02-01",
-    conditionType: "新品・中古両方",
+    conditionType: "新品のみ",
     publishStatus: "販売中",
     description: "夏休みの廃校を舞台にしたホラー映画のコミカライズ第1巻。",
     imageUrl: "",
-    notes: "",
+    notes: "全巻レンタル対応(1巻〜5巻セット貸出あり)",
     createdAt: "2026-01-28T09:00:00.000Z",
     updatedAt: "2026-01-28T09:00:00.000Z",
   },
@@ -335,14 +335,14 @@ export const mockInventory: Inventory[] = [
   {
     productId: "9",
     store: "本店",
-    stock: 10,
-    releaseStatus: null,
-    rentalPriceNew: null,
+    stock: 0,
+    releaseStatus: "新作",
+    rentalPriceNew: 100,
     rentalPriceSemiNew: null,
     rentalPriceOld: null,
-    salePrice: 480,
-    buybackPrice: 50,
-    itemCondition: "新品・中古混在",
+    salePrice: 0,
+    buybackPrice: 0,
+    itemCondition: "レンタル専用(新品)",
     arrivedAt: "2026-01-28",
     updatedAt: "2026-01-28T09:00:00.000Z",
   },
@@ -388,4 +388,67 @@ export const mockInventory: Inventory[] = [
     arrivedAt: "2026-06-25",
     updatedAt: "2026-08-02T09:00:00.000Z",
   },
+];
+
+// 個体(コピー): レンタル対象商品(DVD・ブルーレイ/CD/コミック)のみ、1枚単位で持つ。
+export const mockCopies: Copy[] = [
+  // RN-0004 宇宙漂流記 ネビュラの涙
+  { id: "c1", productId: "4", copyCode: "RN-0004-01", status: "在庫中", condition: "良好", createdAt: "2026-07-08T09:00:00.000Z" },
+  { id: "c2", productId: "4", copyCode: "RN-0004-02", status: "貸出中", condition: "良好", createdAt: "2026-07-08T09:00:00.000Z" },
+  { id: "c3", productId: "4", copyCode: "RN-0004-03", status: "貸出中", condition: "良好", createdAt: "2026-07-08T09:00:00.000Z" },
+  { id: "c4", productId: "4", copyCode: "RN-0004-04", status: "貸出中", condition: "良好", createdAt: "2026-07-08T09:00:00.000Z" },
+  { id: "c5", productId: "4", copyCode: "RN-0004-05", status: "貸出中", condition: "良好", createdAt: "2026-07-08T09:00:00.000Z" },
+  { id: "c6", productId: "4", copyCode: "RN-0004-06", status: "貸出中", condition: "良好", createdAt: "2026-07-08T09:00:00.000Z" },
+  // RN-0005 刑事ドラマ 灰色の街 season2
+  { id: "c7", productId: "5", copyCode: "RN-0005-01", status: "在庫中", condition: "良好", createdAt: "2026-05-28T09:00:00.000Z" },
+  { id: "c8", productId: "5", copyCode: "RN-0005-02", status: "在庫中", condition: "良好", createdAt: "2026-05-28T09:00:00.000Z" },
+  { id: "c9", productId: "5", copyCode: "RN-0005-03", status: "在庫中", condition: "傷あり", createdAt: "2026-05-28T09:00:00.000Z" },
+  { id: "c10", productId: "5", copyCode: "RN-0005-04", status: "貸出中", condition: "良好", createdAt: "2026-05-28T09:00:00.000Z" },
+  { id: "c11", productId: "5", copyCode: "RN-0005-05", status: "貸出中", condition: "良好", createdAt: "2026-05-28T09:00:00.000Z" },
+  { id: "c12", productId: "5", copyCode: "RN-0005-06", status: "貸出中", condition: "良好", createdAt: "2026-05-28T09:00:00.000Z" },
+  // RN-0006 青春オーケストラ
+  { id: "c13", productId: "6", copyCode: "RN-0006-01", status: "在庫中", condition: "良好", createdAt: "2024-08-25T09:00:00.000Z" },
+  { id: "c14", productId: "6", copyCode: "RN-0006-02", status: "在庫中", condition: "良好", createdAt: "2024-08-25T09:00:00.000Z" },
+  { id: "c15", productId: "6", copyCode: "RN-0006-03", status: "貸出中", condition: "良好", createdAt: "2024-08-25T09:00:00.000Z" },
+  // RN-0007 アコースティックナイト Vol.3
+  { id: "c16", productId: "7", copyCode: "RN-0007-01", status: "在庫中", condition: "良好", createdAt: "2026-02-25T09:00:00.000Z" },
+  { id: "c17", productId: "7", copyCode: "RN-0007-02", status: "在庫中", condition: "良好", createdAt: "2026-02-25T09:00:00.000Z" },
+  { id: "c18", productId: "7", copyCode: "RN-0007-03", status: "在庫中", condition: "良好", createdAt: "2026-02-25T09:00:00.000Z" },
+  { id: "c19", productId: "7", copyCode: "RN-0007-04", status: "在庫中", condition: "良好", createdAt: "2026-02-25T09:00:00.000Z" },
+  { id: "c20", productId: "7", copyCode: "RN-0007-05", status: "貸出中", condition: "良好", createdAt: "2026-02-25T09:00:00.000Z" },
+  // RN-0008 オールドタウン・ブルース
+  { id: "c21", productId: "8", copyCode: "RN-0008-01", status: "在庫中", condition: "良好", createdAt: "2023-04-25T09:00:00.000Z" },
+  { id: "c22", productId: "8", copyCode: "RN-0008-02", status: "在庫中", condition: "良好", createdAt: "2023-04-25T09:00:00.000Z" },
+  { id: "c23", productId: "8", copyCode: "RN-0008-03", status: "在庫中", condition: "傷あり", createdAt: "2023-04-25T09:00:00.000Z" },
+  { id: "c24", productId: "8", copyCode: "RN-0008-04", status: "貸出中", condition: "良好", createdAt: "2023-04-25T09:00:00.000Z" },
+  // RN-0009 廃校の怪談 コミック版
+  { id: "c25", productId: "9", copyCode: "RN-0009-01", status: "在庫中", condition: "良好", createdAt: "2026-01-28T09:00:00.000Z" },
+  { id: "c26", productId: "9", copyCode: "RN-0009-02", status: "在庫中", condition: "良好", createdAt: "2026-01-28T09:00:00.000Z" },
+  { id: "c27", productId: "9", copyCode: "RN-0009-03", status: "在庫中", condition: "良好", createdAt: "2026-01-28T09:00:00.000Z" },
+  { id: "c28", productId: "9", copyCode: "RN-0009-04", status: "貸出中", condition: "良好", createdAt: "2026-01-28T09:00:00.000Z" },
+  { id: "c29", productId: "9", copyCode: "RN-0009-05", status: "貸出中", condition: "良好", createdAt: "2026-01-28T09:00:00.000Z" },
+  // RN-0011 深海のフィナーレ
+  { id: "c30", productId: "11", copyCode: "RN-0011-01", status: "在庫中", condition: "良好", createdAt: "2025-05-25T09:00:00.000Z" },
+  { id: "c31", productId: "11", copyCode: "RN-0011-02", status: "在庫中", condition: "良好", createdAt: "2025-05-25T09:00:00.000Z" },
+  { id: "c32", productId: "11", copyCode: "RN-0011-03", status: "在庫中", condition: "傷あり", createdAt: "2025-05-25T09:00:00.000Z" },
+  { id: "c33", productId: "11", copyCode: "RN-0011-04", status: "貸出中", condition: "良好", createdAt: "2025-05-25T09:00:00.000Z" },
+];
+
+// 貸出履歴: returnedAt が null のものが「現在貸出中」のログ。
+export const mockRentalLogs: RentalLog[] = [
+  { id: "l1", copyId: "c1", productId: "4", borrowerName: "鈴木レン", rentedAt: "2026-07-15", dueDate: "2026-07-22", returnedAt: "2026-07-21" },
+  { id: "l2", copyId: "c2", productId: "4", borrowerName: "佐藤ケンタ", rentedAt: "2026-07-28", dueDate: "2026-08-04", returnedAt: null },
+  { id: "l3", copyId: "c3", productId: "4", borrowerName: "田中ミキ", rentedAt: "2026-08-01", dueDate: "2026-08-08", returnedAt: null },
+  { id: "l4", copyId: "c4", productId: "4", borrowerName: "山本ソウタ", rentedAt: "2026-08-02", dueDate: "2026-08-09", returnedAt: null },
+  { id: "l5", copyId: "c5", productId: "4", borrowerName: "小林アイ", rentedAt: "2026-08-03", dueDate: "2026-08-10", returnedAt: null },
+  { id: "l6", copyId: "c6", productId: "4", borrowerName: "中村ユウ", rentedAt: "2026-08-04", dueDate: "2026-08-11", returnedAt: null },
+  { id: "l7", copyId: "c10", productId: "5", borrowerName: "高橋ミオ", rentedAt: "2026-07-30", dueDate: "2026-08-06", returnedAt: null },
+  { id: "l8", copyId: "c11", productId: "5", borrowerName: "渡辺ダイキ", rentedAt: "2026-08-01", dueDate: "2026-08-08", returnedAt: null },
+  { id: "l9", copyId: "c12", productId: "5", borrowerName: "伊藤ハルカ", rentedAt: "2026-08-02", dueDate: "2026-08-09", returnedAt: null },
+  { id: "l10", copyId: "c15", productId: "6", borrowerName: "加藤リク", rentedAt: "2026-07-29", dueDate: "2026-08-12", returnedAt: null },
+  { id: "l11", copyId: "c20", productId: "7", borrowerName: "木村サキ", rentedAt: "2026-08-03", dueDate: "2026-08-05", returnedAt: null },
+  { id: "l12", copyId: "c24", productId: "8", borrowerName: "林タクミ", rentedAt: "2026-07-25", dueDate: "2026-08-08", returnedAt: null },
+  { id: "l13", copyId: "c28", productId: "9", borrowerName: "森ユナ", rentedAt: "2026-08-01", dueDate: "2026-08-08", returnedAt: null },
+  { id: "l14", copyId: "c29", productId: "9", borrowerName: "清水ソラ", rentedAt: "2026-08-02", dueDate: "2026-08-09", returnedAt: null },
+  { id: "l15", copyId: "c33", productId: "11", borrowerName: "池田レイ", rentedAt: "2026-07-20", dueDate: "2026-08-03", returnedAt: null },
 ];
