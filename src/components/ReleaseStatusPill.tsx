@@ -1,0 +1,17 @@
+import { ReleaseStatus } from "@/lib/types";
+
+const STYLES: Record<ReleaseStatus, string> = {
+  新作: "bg-gold-400 text-navy-900",
+  準新作: "bg-sky-100 text-sky-800",
+  旧作: "bg-gray-100 text-gray-500",
+};
+
+export default function ReleaseStatusPill({ status }: { status: ReleaseStatus }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STYLES[status]}`}
+    >
+      {status}
+    </span>
+  );
+}
