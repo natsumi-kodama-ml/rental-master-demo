@@ -25,8 +25,9 @@ export const AGE_RATINGS = ["指定なし", "R15+", "R18+"] as const;
 
 export type AgeRating = (typeof AGE_RATINGS)[number];
 
-// シングル/アルバム: CDのみで使う。レンタル/買取価格の料金表が異なるため区別する。
-export const CD_TYPES = ["シングル", "アルバム"] as const;
+// CDのみで使うレンタル料金区分。DVDの新作/準新作/旧作とは別の料金表で、
+// アルバムは新作/旧作の2段階、シングルは新作の概念がなく全品一律料金。
+export const CD_TYPES = ["アルバム(新作)", "アルバム(旧作)", "シングル"] as const;
 
 export type CdType = (typeof CD_TYPES)[number];
 
@@ -193,9 +194,10 @@ export interface Reservation {
 
 export type ReservationInput = Omit<Reservation, "id" | "reservedAt" | "status">;
 
-// 出庫理由: 販売そのものはレジ(POS)側の取引のためここでは扱わない。
-// ここで管理するのは販売以外の理由で在庫が減る動き(店舗間振替・破損など)。
-export const STOCK_OUT_REASONS = ["店舗振替", "破損", "その他"] as const;
+// 出庫理由。価格・会員情報を伴う実際の売買はレジ(POS)側の取引のため
+// ここでは持たないが、POSで売れた分もこの出庫登録で数量だけ減算しておかないと
+// 在庫数と入荷・出庫履歴が食い違うため、「販売」も理由の1つとして扱う。
+export const STOCK_OUT_REASONS = ["販売", "店舗振替", "破損", "その他"] as const;
 
 export type StockOutReason = (typeof STOCK_OUT_REASONS)[number];
 

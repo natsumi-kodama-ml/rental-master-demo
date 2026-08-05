@@ -199,10 +199,10 @@ export const mockProducts: Product[] = [
     subtitleLanguages: "",
     audioLanguages: "",
     ageRating: "指定なし",
-    cdType: "アルバム",
+    cdType: "アルバム(新作)",
     dealType: "レンタル",
     publishStatus: "販売中",
-    releaseStatus: "新作",
+    releaseStatus: null,
     imageUrl: "",
     notes: "",
     createdAt: "2026-02-25T09:00:00.000Z",
@@ -225,7 +225,7 @@ export const mockProducts: Product[] = [
     cdType: "シングル",
     dealType: "レンタル",
     publishStatus: "販売中",
-    releaseStatus: "旧作",
+    releaseStatus: null,
     imageUrl: "",
     notes: "",
     createdAt: "2023-04-25T09:00:00.000Z",
@@ -1051,13 +1051,14 @@ export const mockReservations: Reservation[] = [
   { id: "r4", productId: "3", reservationNumber: "R-000104", memberId: null, name: "ヤマモト ソウタ", phoneNumber: "090-4567-8901", reservedAt: "2026-08-01T14:00:00.000Z", status: "予約中" },
 ];
 
-// 在庫増減履歴: 個体管理しない新品のみで使う。入荷(増)/出庫(減、店舗振替や破損など)の
-// 積み上げが Inventory.stock と一致する。
+// 在庫増減履歴: 個体管理しない新品のみで使う。入荷(増)/出庫(減、販売・店舗振替・破損など)の
+// 積み上げが Inventory.stock と常に一致する(在庫数はこの履歴の結果として書き換える)。
 export const mockStockMovements: StockMovement[] = [
   { id: "sm1", productId: "1", type: "入荷", quantity: 10, reason: "", occurredAt: "2026-07-18" },
   { id: "sm2", productId: "1", type: "出庫", quantity: 2, reason: "破損", occurredAt: "2026-07-25" },
-  { id: "sm3", productId: "2", type: "入荷", quantity: 10, reason: "", occurredAt: "2025-01-08" },
+  { id: "sm3", productId: "2", type: "入荷", quantity: 12, reason: "", occurredAt: "2025-01-08" },
   { id: "sm4", productId: "2", type: "出庫", quantity: 2, reason: "店舗振替", occurredAt: "2025-03-01" },
+  { id: "sm4b", productId: "2", type: "出庫", quantity: 2, reason: "販売", occurredAt: "2025-06-10" },
   { id: "sm5", productId: "12", type: "入荷", quantity: 12, reason: "", occurredAt: "2026-06-25" },
   { id: "sm6", productId: "12", type: "出庫", quantity: 2, reason: "その他", occurredAt: "2026-07-10" },
   { id: "sm7", productId: "19", type: "入荷", quantity: 6, reason: "", occurredAt: "2026-07-01" },

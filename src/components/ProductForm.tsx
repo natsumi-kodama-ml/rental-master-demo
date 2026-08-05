@@ -223,9 +223,12 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       cdType: isCd && form.cdType !== "" ? form.cdType : null,
       dealType: effectiveDealType,
       publishStatus: form.publishStatus,
-      releaseStatus: rentalEligible
-        ? (form.releaseStatus === "" ? null : form.releaseStatus)
-        : null,
+      releaseStatus:
+        rentalEligible && !isCd
+          ? form.releaseStatus === ""
+            ? null
+            : form.releaseStatus
+          : null,
       imageUrl: form.imageUrl,
       notes: form.notes.trim(),
     };
@@ -448,7 +451,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 ))}
               </select>
             </Field>
-            {rentalEligible && (
+            {rentalEligible && !isCd && (
               <Field label="新作/準新作/旧作">
                 <select
                   value={form.releaseStatus}

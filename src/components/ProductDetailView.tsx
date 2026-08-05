@@ -27,6 +27,7 @@ import {
 import PublishStatusBadge from "./PublishStatusBadge";
 import ReleaseStatusPill from "./ReleaseStatusPill";
 import DealTypeBadge from "./DealTypeBadge";
+import CdTierBadge from "./CdTierBadge";
 import ProductImage from "./ProductImage";
 
 function formatDateTime(iso: string) {
@@ -340,9 +341,10 @@ export default function ProductDetailView({ productId }: { productId: string }) 
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <DealTypeBadge dealType={product.dealType} />
-                {rentalEligible && (
-                  <ReleaseStatusPill status={product.releaseStatus} cdType={product.cdType} />
+                {rentalEligible && product.category !== "CD" && (
+                  <ReleaseStatusPill status={product.releaseStatus} />
                 )}
+                {product.cdType && <CdTierBadge cdType={product.cdType} />}
                 {product.ageRating !== "指定なし" && (
                   <span className="inline-flex items-center rounded-full bg-rose-600 px-3 py-1 text-xs font-bold text-white">
                     {product.ageRating}

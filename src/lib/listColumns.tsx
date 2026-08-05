@@ -10,6 +10,7 @@ import {
 import PublishStatusBadge from "@/components/PublishStatusBadge";
 import ReleaseStatusPill from "@/components/ReleaseStatusPill";
 import DealTypeBadge from "@/components/DealTypeBadge";
+import CdTierBadge from "@/components/CdTierBadge";
 
 export interface ProductRow {
   product: Product;
@@ -128,14 +129,16 @@ export const COLUMN_DEFS: ColumnDef[] = [
   },
   {
     key: "releaseStatus",
-    label: "新作/準新作/旧作",
-    render: (r) =>
-      isRentalDealType(r.product.dealType) ? (
-        <ReleaseStatusPill status={r.product.releaseStatus} cdType={r.product.cdType} />
+    label: "料金区分",
+    render: (r) => {
+      if (r.product.cdType) return <CdTierBadge cdType={r.product.cdType} />;
+      return isRentalDealType(r.product.dealType) ? (
+        <ReleaseStatusPill status={r.product.releaseStatus} />
       ) : (
-        <span className="text-xs text-gray-300">(対象外)</span>
-      ),
-    sortValue: (r) => r.product.releaseStatus ?? "",
+        <span className="text-xs text-gray-300">-</span>
+      );
+    },
+    sortValue: (r) => r.product.cdType ?? r.product.releaseStatus ?? "",
   },
   {
     key: "updatedAt",
