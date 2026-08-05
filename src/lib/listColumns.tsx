@@ -18,12 +18,21 @@ export interface ProductRow {
 }
 
 // レンタル対象は在庫個体(Copy)から集計し、それ以外は Inventory.stock を使う。
-// 貸出可能かどうかは個体ごとの状態欄で見るため、ここでは単純な在庫数のみを返す。
 export function getStockCount(row: ProductRow): number {
   if (hasIndividualUnits(row.product.dealType)) {
     return row.copies.filter((c) => ACTIVE_COPY_STATUSES.includes(c.status)).length;
   }
   return row.inventory?.stock ?? 0;
+}
+
+// レンタル対象のうち、今すぐ貸し出せる個体数(在庫数のうちの内訳)。
+export function getAvailableCount(row: ProductRow): number {
+  return row.copies.filter((c) => c.status === "貸出可能").length;
+}
+
+// レンタル落ちで中古販売の棚に並んでいる個体数(まだ売れていないもの)。
+export function getUsedForSaleCount(row: ProductRow): number {
+  return row.copies.filter((c) => c.status === "在庫").length;
 }
 
 export type ColumnKey =
@@ -69,7 +78,16 @@ export const COLUMN_DEFS: ColumnDef[] = [
   {
     key: "dealType",
     label: "区分",
-    render: (r) => <DealTypeBadge dealType={r.product.dealType} />,
+    render: (r) => (
+      <div className="flex items-center gap-1">
+        <DealTypeBadge dealType={r.product.dealType} />
+        {isRentalDealType(r.product.dealType) && getUsedForSaleCount(r) > 0 && (
+          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+            中古{getUsedForSaleCount(r)}点
+          </span>
+        )}
+      </div>
+    ),
     sortValue: (r) => r.product.dealType,
   },
   {
@@ -110,9 +128,12 @@ export const COLUMN_DEFS: ColumnDef[] = [
   },
   {
     key: "stock",
-    label: "在庫数",
+    label: "在庫数(レンタルは貸出可能/総数)",
     align: "right",
-    render: (r) => String(getStockCount(r)),
+    render: (r) =>
+      isRentalDealType(r.product.dealType)
+        ? `${getAvailableCount(r)} / ${getStockCount(r)}`
+        : String(getStockCount(r)),
     sortValue: (r) => getStockCount(r),
   },
   {

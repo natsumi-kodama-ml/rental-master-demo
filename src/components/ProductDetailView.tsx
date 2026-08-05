@@ -6,6 +6,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { useInventory } from "@/hooks/useInventory";
 import { useCopies } from "@/hooks/useCopies";
 import { useRentalLogs } from "@/hooks/useRentalLogs";
+import { useReservations } from "@/hooks/useReservations";
 import {
   CopyStatus,
   RETIRED_COPY_STATUSES,
@@ -40,16 +41,29 @@ function formatDateOnly(iso: string) {
   });
 }
 
+function isOverdue(dueDate: string): boolean {
+  if (!dueDate) return false;
+  return new Date(dueDate).getTime() < Date.now();
+}
+
+// レンタル個体を「取り消す」場合の行き先。売れるカテゴリは「在庫」(=中古販売の
+// 棚に並んだだけでまだ売れていない状態)を経由し、実際に売れたら改めて「販売済み」
+// に変える。CD/コミックは販売経路自体がないため廃棄・返品のみ。
 const RETIRE_STATUSES_BY_SELL: Record<"sell" | "noSell", CopyStatus[]> = {
-  sell: ["廃棄", "返品", "販売済み"],
+  sell: ["廃棄", "返品", "在庫"],
   noSell: ["廃棄", "返品"],
 };
+
+// 個体がさらに操作可能な(まだ終端でない)状態。
+const EDITABLE_FROM_STATUSES: CopyStatus[] = ["貸出可能", "点検中", "在庫"];
 
 export default function ProductDetailView({ productId }: { productId: string }) {
   const { getProduct } = useProducts();
   const { getInventory, upsertInventory } = useInventory();
   const { getCopiesForProduct, addCopy, updateCopyStatus } = useCopies();
   const { getLogsForProduct, getOpenLogForCopy } = useRentalLogs();
+  const { getReservationsForProduct, addReservation, deleteReservation } =
+    useReservations();
   const [expandedCopyId, setExpandedCopyId] = useState<string | null>(null);
 
   const product = getProduct(productId);
@@ -73,23 +87,32 @@ export default function ProductDetailView({ productId }: { productId: string }) 
   const canSellUsedCopies = canSellRetiredCopies(product.category);
   const showSalePrice = sellEligible || canSellUsedCopies;
   const isDvd = product.category === "DVD・ブルーレイ";
+  const isPreorder = product.publishStatus === "予約受付中";
+  const reservations = getReservationsForProduct(productId);
   const copies = getCopiesForProduct(productId);
   const logs = getLogsForProduct(productId);
   const closedLogs = logs
     .filter((l) => l.returnedAt !== null)
     .sort((a, b) => (a.rentedAt < b.rentedAt ? 1 : -1));
   const activeCount = copies.filter((c) => !RETIRED_COPY_STATUSES.includes(c.status)).length;
+  const usedForSaleCount = copies.filter((c) => c.status === "在庫").length;
   const retireStatuses = canSellUsedCopies
     ? RETIRE_STATUSES_BY_SELL.sell
     : RETIRE_STATUSES_BY_SELL.noSell;
-  const editableCopyStatuses: CopyStatus[] = rentalEligible
-    ? ["貸出可能", "点検中", ...retireStatuses]
-    : ["在庫", "点検中", "廃棄", "返品", "販売済み"];
+
+  // 個体ごとに現在の状態から選べる選択肢を出す。一度「在庫」(中古販売中)に
+  // なった個体は、元がレンタル対象でも中古販売の選択肢(廃棄/返品/販売済み)に切り替わる。
+  function getEditableStatusOptions(status: CopyStatus): CopyStatus[] {
+    if (status === "在庫") {
+      return ["在庫", "点検中", "廃棄", "返品", "販売済み"];
+    }
+    return rentalEligible
+      ? ["貸出可能", "点検中", ...retireStatuses]
+      : ["在庫", "点検中", "廃棄", "返品", "販売済み"];
+  }
 
   function canEditCopyStatus(status: CopyStatus): boolean {
-    return rentalEligible
-      ? status === "貸出可能" || status === "点検中"
-      : status === "在庫" || status === "点検中";
+    return EDITABLE_FROM_STATUSES.includes(status);
   }
 
   function handleReceiveUnits() {
@@ -114,6 +137,28 @@ export default function ProductDetailView({ productId }: { productId: string }) 
         condition,
       });
     }
+  }
+
+  function handleAddReservation() {
+    const reservationNumber = window.prompt("予約番号を入力してください");
+    if (!reservationNumber) return;
+    const name = window.prompt("氏名を入力してください");
+    if (!name) return;
+    const phoneNumber = window.prompt("電話番号を入力してください") ?? "";
+    const memberId = window.prompt("会員IDを入力してください(会員でない場合は空欄)") ?? "";
+    addReservation({
+      productId,
+      reservationNumber: reservationNumber.trim(),
+      memberId: memberId.trim() === "" ? null : memberId.trim(),
+      name: name.trim(),
+      phoneNumber: phoneNumber.trim(),
+    });
+  }
+
+  function handleCancelReservation(id: string) {
+    const confirmed = window.confirm("この予約を取り消します。よろしいですか？");
+    if (!confirmed) return;
+    deleteReservation(id);
   }
 
   function handleReceiveStock() {
@@ -206,6 +251,74 @@ export default function ProductDetailView({ productId }: { productId: string }) 
           </div>
         </dl>
 
+        {isPreorder && (
+          <div className="mt-6 border-t border-gray-100 pt-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-navy-900">
+                予約状況({reservations.length}件)
+              </h2>
+              <button
+                type="button"
+                onClick={handleAddReservation}
+                className="rounded-full border border-navy-300 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-navy-50"
+              >
+                + 予約を登録
+              </button>
+            </div>
+            {reservations.length === 0 ? (
+              <p className="text-sm text-gray-400">予約はまだありません。</p>
+            ) : (
+              <div className="overflow-x-auto rounded-md border border-gray-200">
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead className="bg-navy-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">予約番号</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">会員ID</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">氏名</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">電話番号</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {reservations.map((reservation) => (
+                      <tr key={reservation.id}>
+                        <td className="px-3 py-2 font-medium text-navy-700">
+                          {reservation.reservationNumber}
+                        </td>
+                        <td className="px-3 py-2 text-gray-600">
+                          {reservation.memberId ? (
+                            <Link
+                              href={`/members/${encodeURIComponent(reservation.memberId)}`}
+                              className="text-navy-700 hover:underline"
+                            >
+                              {reservation.memberId}
+                            </Link>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-gray-600">{reservation.name}</td>
+                        <td className="px-3 py-2 text-gray-600">
+                          {reservation.phoneNumber || "-"}
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCancelReservation(reservation.id)}
+                            className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-500 hover:bg-rose-50"
+                          >
+                            取り消す
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="mt-6 border-t border-gray-100 pt-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-bold text-navy-900">在庫情報</h2>
@@ -225,6 +338,9 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                 label="在庫数"
                 value={String(unitTracked ? activeCount : inventory.stock)}
               />
+              {rentalEligible && canSellUsedCopies && (
+                <Stat label="中古販売中" value={String(usedForSaleCount)} />
+              )}
               <Stat label="入荷日" value={formatDateOnly(inventory.arrivedAt)} />
               {showSalePrice && (
                 <Stat
@@ -272,14 +388,9 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">個体番号</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">状態</th>
-                      {rentalEligible ? (
-                        <>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">貸出中の会員ID</th>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">返却予定日</th>
-                        </>
-                      ) : (
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">コンディション</th>
-                      )}
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">貸出中の会員ID</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">返却予定日</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">コンディション</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -317,7 +428,7 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                                   }
                                   className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-navy-600 focus:outline-none"
                                 >
-                                  {editableCopyStatuses.map((s) => (
+                                  {getEditableStatusOptions(copy.status).map((s) => (
                                     <option key={s} value={s}>
                                       {s}
                                     </option>
@@ -327,33 +438,40 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                                 <CopyStatusBadge status={copy.status} />
                               )}
                             </td>
-                            {rentalEligible ? (
-                              <>
-                                <td className="px-3 py-2 text-gray-600">
-                                  {openLog ? (
-                                    <Link
-                                      href={`/members/${encodeURIComponent(openLog.memberId)}`}
-                                      className="text-navy-700 hover:underline"
-                                    >
-                                      {openLog.memberId}
-                                    </Link>
-                                  ) : (
-                                    "-"
-                                  )}
-                                </td>
-                                <td className="px-3 py-2 text-gray-600">
-                                  {openLog ? formatDateOnly(openLog.dueDate) : "-"}
-                                </td>
-                              </>
-                            ) : (
-                              <td className="px-3 py-2 text-gray-600">
-                                {copy.condition || "-"}
-                              </td>
-                            )}
+                            <td className="px-3 py-2 text-gray-600">
+                              {openLog ? (
+                                <Link
+                                  href={`/members/${encodeURIComponent(openLog.memberId)}`}
+                                  className="text-navy-700 hover:underline"
+                                >
+                                  {openLog.memberId}
+                                </Link>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              {openLog ? (
+                                isOverdue(openLog.dueDate) ? (
+                                  <span className="font-semibold text-rose-600">
+                                    {formatDateOnly(openLog.dueDate)}(延滞)
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-600">
+                                    {formatDateOnly(openLog.dueDate)}
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-gray-600">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600">
+                              {copy.condition || "-"}
+                            </td>
                           </tr>
                           {isExpanded && (
                             <tr>
-                              <td colSpan={4} className="bg-gray-50 px-3 py-3">
+                              <td colSpan={5} className="bg-gray-50 px-3 py-3">
                                 <p className="mb-2 text-xs font-semibold text-gray-500">
                                   {copy.copyCode} の貸出履歴(返却済み)
                                 </p>

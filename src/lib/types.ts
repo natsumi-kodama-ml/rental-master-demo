@@ -132,3 +132,17 @@ export interface RentalLog {
   dueDate: string;
   returnedAt: string | null;
 }
+
+// 予約: 予約受付中の商品に対する予約1件。会員でない予約者もいるため
+// memberId は null を許容し、その場合は氏名・電話番号で本人確認する。
+export interface Reservation {
+  id: string;
+  productId: string;
+  reservationNumber: string;
+  memberId: string | null;
+  name: string;
+  phoneNumber: string;
+  reservedAt: string;
+}
+
+export type ReservationInput = Omit<Reservation, "id" | "reservedAt">;

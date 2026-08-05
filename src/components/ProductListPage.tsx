@@ -6,6 +6,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { useInventory } from "@/hooks/useInventory";
 import { useCopies } from "@/hooks/useCopies";
 import { useRentalLogs } from "@/hooks/useRentalLogs";
+import { useReservations } from "@/hooks/useReservations";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { useFilterPrefs } from "@/hooks/useFilterPrefs";
 import { ProductRow } from "@/lib/listColumns";
@@ -18,6 +19,7 @@ export default function ProductListPage() {
   const { inventory, deleteInventory } = useInventory();
   const { copies, deleteCopiesForProduct } = useCopies();
   const { deleteLogsForProduct } = useRentalLogs();
+  const { deleteReservationsForProduct } = useReservations();
   const { visibleColumns } = useColumnVisibility();
   const { filters, setFilters, resetFilters } = useFilterPrefs();
   const { search, category, genre, publishStatus } = filters;
@@ -33,11 +35,11 @@ export default function ProductListPage() {
     [products, inventory, copies]
   );
 
-  const genreOptions = useMemo(
-    () =>
-      Array.from(new Set(products.map((p) => p.genre).filter(Boolean))).sort(),
-    [products]
-  );
+  const genreOptions = useMemo(() => {
+    const relevant =
+      category === "all" ? products : products.filter((p) => p.category === category);
+    return Array.from(new Set(relevant.map((p) => p.genre).filter(Boolean))).sort();
+  }, [products, category]);
 
   const filteredRows = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -105,6 +107,7 @@ export default function ProductListPage() {
     selectedIds.forEach((id) => {
       deleteCopiesForProduct(id);
       deleteLogsForProduct(id);
+      deleteReservationsForProduct(id);
       deleteInventory(id);
       deleteProduct(id);
     });
@@ -127,7 +130,7 @@ export default function ProductListPage() {
         search={search}
         onSearchChange={(value) => setFilters({ search: value })}
         category={category}
-        onCategoryChange={(value) => setFilters({ category: value })}
+        onCategoryChange={(value) => setFilters({ category: value, genre: "all" })}
         genre={genre}
         onGenreChange={(value) => setFilters({ genre: value })}
         genreOptions={genreOptions}
