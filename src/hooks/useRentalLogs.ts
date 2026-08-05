@@ -7,8 +7,6 @@ import {
   getServerSnapshot,
   getLogsForProduct,
   getOpenLogForCopy,
-  checkoutCopy,
-  returnCopy,
   deleteLogsForProduct,
 } from "@/lib/rentalLogStore";
 
@@ -18,8 +16,6 @@ export function useRentalLogs() {
     logs,
     getLogsForProduct,
     getOpenLogForCopy,
-    checkoutCopy,
-    returnCopy,
     deleteLogsForProduct,
   };
 }

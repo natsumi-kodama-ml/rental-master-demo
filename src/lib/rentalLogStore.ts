@@ -53,35 +53,8 @@ export function getOpenLogForCopy(copyId: string): RentalLog | undefined {
   return ensureLoaded().find((l) => l.copyId === copyId && l.returnedAt === null);
 }
 
-export function checkoutCopy(
-  copyId: string,
-  productId: string,
-  borrowerName: string,
-  dueDate: string
-): RentalLog {
-  const newLog: RentalLog = {
-    id: crypto.randomUUID(),
-    copyId,
-    productId,
-    borrowerName,
-    rentedAt: new Date().toISOString().slice(0, 10),
-    dueDate,
-    returnedAt: null,
-  };
-  persistAndNotify([...ensureLoaded(), newLog]);
-  return newLog;
-}
-
-export function returnCopy(copyId: string) {
-  const today = new Date().toISOString().slice(0, 10);
-  persistAndNotify(
-    ensureLoaded().map((l) =>
-      l.copyId === copyId && l.returnedAt === null
-        ? { ...l, returnedAt: today }
-        : l
-    )
-  );
-}
+// 貸出・返却の記録自体は接客時のレジ(POS)側システムが作る想定で、
+// この商品マスタ画面からは作成しない(表示のみ)。
 
 export function deleteLogsForProduct(productId: string) {
   persistAndNotify(ensureLoaded().filter((l) => l.productId !== productId));

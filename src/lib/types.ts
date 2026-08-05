@@ -28,7 +28,15 @@ export function isBuybackCategory(category: Category): boolean {
   return category === "ゲーム";
 }
 
-// 商品マスタ: 「商品そのもの」の情報のみを持つ。在庫数・価格は持たない。
+// 販売という取引が存在するカテゴリ。ゲームは新品/中古で販売、
+// DVD・ブルーレイはレンタル落ちのみ中古販売。CD/コミックは販売経路自体がない。
+export function canSellCategory(category: Category): boolean {
+  return category === "ゲーム" || category === "DVD・ブルーレイ";
+}
+
+// 商品マスタ: 「商品そのもの」の情報を持つ。在庫数・価格は持たない。
+// 新作/準新作/旧作は商品全体のステータス。自動計算ではなく、人気度に応じて
+// スタッフが手動で切り替える(店舗別の在庫状態とは別軸の情報)。
 export interface Product {
   id: string;
   code: string;
@@ -41,6 +49,7 @@ export interface Product {
   releaseDate: string;
   conditionType: ConditionType;
   publishStatus: PublishStatus;
+  releaseStatus: ReleaseStatus | null;
   description: string;
   imageUrl: string;
   notes: string;
@@ -50,13 +59,11 @@ export interface Product {
 
 export type ProductInput = Omit<Product, "id" | "createdAt" | "updatedAt">;
 
-// 在庫: 「店舗ごとの在庫・価格・状態」を持つ。商品マスタとは別の実体。
-// 新作/準新作/旧作は自動計算ではなく、人気度に応じてスタッフが手動で切り替える。
+// 在庫: 「店舗ごとの価格」を持つ。商品マスタとは別の実体。
 export interface Inventory {
   productId: string;
   store: string;
   stock: number;
-  releaseStatus: ReleaseStatus | null;
   rentalPriceNew: number | null;
   rentalPriceSemiNew: number | null;
   rentalPriceOld: number | null;
@@ -69,9 +76,22 @@ export interface Inventory {
 
 export type InventoryInput = Omit<Inventory, "productId" | "updatedAt">;
 
-export const COPY_STATUSES = ["在庫中", "貸出中", "修理中", "廃棄"] as const;
+export const COPY_STATUSES = [
+  "貸出可能",
+  "貸出中",
+  "点検中",
+  "廃棄",
+  "返品",
+  "販売済み",
+] as const;
 
 export type CopyStatus = (typeof COPY_STATUSES)[number];
+
+// 個体が実際に貸出可能な在庫として数えられる状態。
+export const ACTIVE_COPY_STATUSES: CopyStatus[] = ["貸出可能", "貸出中", "点検中"];
+
+// 個体が「引退」した(貸出・在庫カウントの対象外になった)状態。
+export const RETIRED_COPY_STATUSES: CopyStatus[] = ["廃棄", "返品", "販売済み"];
 
 // 個体(コピー): レンタル対象カテゴリの「1枚1枚」を管理する。
 // 在庫数・貸出中数はここから集計するため、Inventory.stock とは別管理。

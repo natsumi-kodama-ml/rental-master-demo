@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useProducts } from "@/hooks/useProducts";
 import { useInventory } from "@/hooks/useInventory";
+import { useCopies } from "@/hooks/useCopies";
 import { fileToResizedDataUrl } from "@/lib/resizeImage";
 import {
   CATEGORIES,
@@ -17,6 +18,7 @@ import {
   ReleaseStatus,
   isRentalCategory,
   isBuybackCategory,
+  canSellCategory,
 } from "@/lib/types";
 import ProductImage from "./ProductImage";
 
@@ -36,6 +38,7 @@ interface FormState {
   releaseDate: string;
   conditionType: ConditionType;
   publishStatus: PublishStatus;
+  releaseStatus: ReleaseStatus | "";
   imageUrl: string;
   description: string;
   notes: string;
@@ -44,10 +47,10 @@ interface FormState {
   arrivedAt: string;
   salePrice: string;
   buybackPrice: string;
-  releaseStatus: ReleaseStatus | "";
   rentalPriceNew: string;
   rentalPriceSemiNew: string;
   rentalPriceOld: string;
+  initialStock: string;
 }
 
 const inputClass =
@@ -64,6 +67,7 @@ const emptyForm: FormState = {
   releaseDate: new Date().toISOString().slice(0, 10),
   conditionType: CONDITION_TYPES[0],
   publishStatus: PUBLISH_STATUSES[0],
+  releaseStatus: "",
   imageUrl: "",
   description: "",
   notes: "",
@@ -72,16 +76,17 @@ const emptyForm: FormState = {
   arrivedAt: "",
   salePrice: "0",
   buybackPrice: "0",
-  releaseStatus: "",
   rentalPriceNew: "",
   rentalPriceSemiNew: "",
   rentalPriceOld: "",
+  initialStock: "0",
 };
 
 export default function ProductForm({ mode, productId }: ProductFormProps) {
   const router = useRouter();
   const { products, getProduct, addProduct, updateProduct } = useProducts();
   const { getInventory, upsertInventory } = useInventory();
+  const { addCopy } = useCopies();
 
   const existingProduct =
     mode === "edit" && productId ? getProduct(productId) : undefined;
@@ -101,6 +106,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
           releaseDate: existingProduct.releaseDate,
           conditionType: existingProduct.conditionType,
           publishStatus: existingProduct.publishStatus,
+          releaseStatus: existingProduct.releaseStatus ?? "",
           imageUrl: existingProduct.imageUrl,
           description: existingProduct.description,
           notes: existingProduct.notes,
@@ -109,7 +115,6 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
           arrivedAt: existingInventory?.arrivedAt ?? "",
           salePrice: String(existingInventory?.salePrice ?? 0),
           buybackPrice: String(existingInventory?.buybackPrice ?? 0),
-          releaseStatus: existingInventory?.releaseStatus ?? "",
           rentalPriceNew:
             existingInventory?.rentalPriceNew != null
               ? String(existingInventory.rentalPriceNew)
@@ -122,6 +127,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
             existingInventory?.rentalPriceOld != null
               ? String(existingInventory.rentalPriceOld)
               : "",
+          initialStock: "0",
         }
       : emptyForm
   );
@@ -142,6 +148,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
 
   const rentalEligible = isRentalCategory(form.category);
   const buybackEligible = isBuybackCategory(form.category);
+  const sellEligible = canSellCategory(form.category);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -189,9 +196,11 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
         nextErrors.stock = "0以上の整数を入力してください";
       }
     }
-    const salePrice = Number(form.salePrice);
-    if (form.salePrice.trim() === "" || Number.isNaN(salePrice) || salePrice < 0) {
-      nextErrors.salePrice = "0以上の金額を入力してください";
+    if (sellEligible) {
+      const salePrice = Number(form.salePrice);
+      if (form.salePrice.trim() === "" || Number.isNaN(salePrice) || salePrice < 0) {
+        nextErrors.salePrice = "0以上の金額を入力してください";
+      }
     }
     if (buybackEligible) {
       const buybackPrice = Number(form.buybackPrice);
@@ -201,6 +210,17 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
         buybackPrice < 0
       ) {
         nextErrors.buybackPrice = "0以上の金額を入力してください";
+      }
+    }
+    if (mode === "create" && rentalEligible) {
+      const initialStock = Number(form.initialStock);
+      if (
+        form.initialStock.trim() === "" ||
+        Number.isNaN(initialStock) ||
+        !Number.isInteger(initialStock) ||
+        initialStock < 0
+      ) {
+        nextErrors.initialStock = "0以上の整数を入力してください";
       }
     }
 
@@ -222,8 +242,11 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       maker: form.maker.trim(),
       platform: form.platform.trim(),
       releaseDate: form.releaseDate,
-      conditionType: form.conditionType,
+      conditionType: sellEligible ? form.conditionType : "中古のみ" as ConditionType,
       publishStatus: form.publishStatus,
+      releaseStatus: rentalEligible
+        ? (form.releaseStatus === "" ? null : form.releaseStatus)
+        : null,
       imageUrl: form.imageUrl,
       description: form.description.trim(),
       notes: form.notes.trim(),
@@ -233,9 +256,6 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       store: "本店",
       // レンタル対象は在庫個体(Copy)から集計するため、ここでの stock は使わない
       stock: rentalEligible ? 0 : Number(form.stock),
-      releaseStatus: rentalEligible
-        ? (form.releaseStatus === "" ? null : form.releaseStatus)
-        : null,
       rentalPriceNew:
         rentalEligible && form.rentalPriceNew.trim() !== ""
           ? Number(form.rentalPriceNew)
@@ -248,7 +268,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
         rentalEligible && form.rentalPriceOld.trim() !== ""
           ? Number(form.rentalPriceOld)
           : null,
-      salePrice: Number(form.salePrice),
+      salePrice: sellEligible ? Number(form.salePrice) : 0,
       buybackPrice: buybackEligible ? Number(form.buybackPrice) : 0,
       itemCondition: rentalEligible ? "" : form.itemCondition.trim(),
       arrivedAt: form.arrivedAt,
@@ -257,6 +277,17 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
     if (mode === "create") {
       const created = addProduct(productInput);
       upsertInventory(created.id, inventoryInput);
+      if (rentalEligible) {
+        const count = Number(form.initialStock);
+        for (let i = 1; i <= count; i++) {
+          addCopy({
+            productId: created.id,
+            copyCode: `${created.code}-${String(i).padStart(2, "0")}`,
+            status: "貸出可能",
+            condition: "良好",
+          });
+        }
+      }
       router.push(`/products/${created.id}`);
     } else if (existingProduct) {
       updateProduct(existingProduct.id, productInput);
@@ -351,21 +382,34 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 className={inputClass}
               />
             </Field>
-            <Field label="新品/中古取扱区分">
-              <select
-                value={form.conditionType}
-                onChange={(e) =>
-                  update("conditionType", e.target.value as ConditionType)
+            {sellEligible && (
+              <Field
+                label="新品/中古取扱区分"
+                hint={
+                  rentalEligible
+                    ? "レンタル対象はレンタル落ちの中古販売のみのため「中古のみ」固定です"
+                    : undefined
                 }
-                className={inputClass}
               >
-                {CONDITION_TYPES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </Field>
+                {rentalEligible ? (
+                  <input type="text" value="中古のみ" disabled className={inputClass} />
+                ) : (
+                  <select
+                    value={form.conditionType}
+                    onChange={(e) =>
+                      update("conditionType", e.target.value as ConditionType)
+                    }
+                    className={inputClass}
+                  >
+                    {CONDITION_TYPES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+            )}
             <Field label="公開状態">
               <select
                 value={form.publishStatus}
@@ -381,6 +425,27 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 ))}
               </select>
             </Field>
+            {rentalEligible && (
+              <Field
+                label="新作/準新作/旧作"
+                hint="人気度に応じてスタッフが手動で切り替えます(自動更新ではありません)"
+              >
+                <select
+                  value={form.releaseStatus}
+                  onChange={(e) =>
+                    update("releaseStatus", e.target.value as ReleaseStatus | "")
+                  }
+                  className={inputClass}
+                >
+                  <option value="">未設定</option>
+                  {RELEASE_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </div>
         </FormSection>
 
@@ -388,9 +453,9 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
           title="在庫・価格情報"
           description="店舗ごとの在庫・価格です(商品マスタとは別テーブルで管理)"
         >
-          {rentalEligible && (
+          {rentalEligible && mode === "edit" && (
             <p className="mb-4 text-xs text-gray-500">
-              在庫数・商品状態は1枚ごとの「在庫個体」から集計します。個体の登録・貸出/返却は保存後、商品詳細ページで行ってください。
+              在庫数・商品状態は1枚ごとの「在庫個体」から集計します。個体の入荷・取り消しは商品詳細ページで行ってください。
             </p>
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -414,6 +479,20 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 </Field>
               </>
             )}
+            {rentalEligible && mode === "create" && (
+              <Field
+                label="初期入荷数"
+                error={errors.initialStock}
+                hint="登録と同時にこの数だけ在庫個体を作成します"
+              >
+                <input
+                  type="number"
+                  value={form.initialStock}
+                  onChange={(e) => update("initialStock", e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+            )}
             <Field label="入荷日">
               <input
                 type="date"
@@ -422,14 +501,16 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 className={inputClass}
               />
             </Field>
-            <Field label="販売価格(円)" error={errors.salePrice}>
-              <input
-                type="number"
-                value={form.salePrice}
-                onChange={(e) => update("salePrice", e.target.value)}
-                className={inputClass}
-              />
-            </Field>
+            {sellEligible && (
+              <Field label="販売価格(円)" error={errors.salePrice}>
+                <input
+                  type="number"
+                  value={form.salePrice}
+                  onChange={(e) => update("salePrice", e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+            )}
             {buybackEligible && (
               <Field label="買取価格(円)" error={errors.buybackPrice}>
                 <input
@@ -445,26 +526,10 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
 
         {rentalEligible && (
           <FormSection
-            title="レンタル情報"
-            description="新作/準新作/旧作は人気度に応じてスタッフが手動で切り替えます(自動更新ではありません)"
+            title="レンタル料金"
+            description="ステータス(新作/準新作/旧作)ごとの1泊料金です"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-              <Field label="現在のステータス">
-                <select
-                  value={form.releaseStatus}
-                  onChange={(e) =>
-                    update("releaseStatus", e.target.value as ReleaseStatus | "")
-                  }
-                  className={inputClass}
-                >
-                  <option value="">未設定(レンタル対象外)</option>
-                  {RELEASE_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label="新作料金(1泊/円)">
                 <input
                   type="number"

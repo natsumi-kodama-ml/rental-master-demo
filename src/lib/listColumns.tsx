@@ -1,5 +1,11 @@
 import { ReactNode } from "react";
-import { Copy, Inventory, Product, isRentalCategory } from "./types";
+import {
+  ACTIVE_COPY_STATUSES,
+  Copy,
+  Inventory,
+  Product,
+  isRentalCategory,
+} from "./types";
 import PublishStatusBadge from "@/components/PublishStatusBadge";
 import ReleaseStatusPill from "@/components/ReleaseStatusPill";
 
@@ -12,14 +18,14 @@ export interface ProductRow {
 // レンタル対象は在庫個体(Copy)から集計し、それ以外は Inventory.stock を使う。
 export function getStockCount(row: ProductRow): number {
   if (isRentalCategory(row.product.category)) {
-    return row.copies.filter((c) => c.status === "在庫中").length;
+    return row.copies.filter((c) => c.status === "貸出可能").length;
   }
   return row.inventory?.stock ?? 0;
 }
 
 export function getTotalCopyCount(row: ProductRow): number {
   if (isRentalCategory(row.product.category)) {
-    return row.copies.filter((c) => c.status !== "廃棄").length;
+    return row.copies.filter((c) => ACTIVE_COPY_STATUSES.includes(c.status)).length;
   }
   return row.inventory?.stock ?? 0;
 }
@@ -114,10 +120,11 @@ export const COLUMN_DEFS: ColumnDef[] = [
     label: "新作/準新作/旧作",
     render: (r) =>
       isRentalCategory(r.product.category) ? (
-        <ReleaseStatusPill status={r.inventory?.releaseStatus ?? null} />
+        <ReleaseStatusPill status={r.product.releaseStatus} />
       ) : (
         <span className="text-xs text-gray-300">(対象外)</span>
       ),
+    sortValue: (r) => r.product.releaseStatus ?? "",
   },
   {
     key: "updatedAt",
