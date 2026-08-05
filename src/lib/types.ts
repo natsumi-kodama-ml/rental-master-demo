@@ -23,6 +23,11 @@ export const AGE_RATINGS = ["指定なし", "R15+", "R18+"] as const;
 
 export type AgeRating = (typeof AGE_RATINGS)[number];
 
+// シングル/アルバム: CDのみで使う。レンタル/買取価格の料金表が異なるため区別する。
+export const CD_TYPES = ["シングル", "アルバム"] as const;
+
+export type CdType = (typeof CD_TYPES)[number];
+
 // レンタル対象(在庫個体での管理)かどうかは区分で決まる。
 export function isRentalDealType(dealType: DealType): boolean {
   return dealType === "レンタル";
@@ -77,6 +82,8 @@ export interface Product {
   audioLanguages: string;
   // DVD・ブルーレイ以外は常に"指定なし"。
   ageRating: AgeRating;
+  // CD以外は null。
+  cdType: CdType | null;
   dealType: DealType;
   publishStatus: PublishStatus;
   releaseStatus: ReleaseStatus | null;
@@ -115,6 +122,7 @@ export const COPY_STATUSES = [
   "廃棄",
   "返品",
   "販売済み",
+  "店舗振替",
 ] as const;
 
 export type CopyStatus = (typeof COPY_STATUSES)[number];
@@ -129,7 +137,7 @@ export const ACTIVE_COPY_STATUSES: CopyStatus[] = [
 ];
 
 // 個体が「引退」した(貸出・在庫カウントの対象外になった)状態。
-export const RETIRED_COPY_STATUSES: CopyStatus[] = ["廃棄", "返品", "販売済み"];
+export const RETIRED_COPY_STATUSES: CopyStatus[] = ["廃棄", "返品", "販売済み", "店舗振替"];
 
 // 個体(コピー): レンタル対象・中古販売対象カテゴリの「1枚1枚」を管理する。
 // 在庫数・貸出中数はここから集計するため、Inventory.stock とは別管理。
@@ -157,6 +165,16 @@ export interface RentalLog {
   returnedAt: string | null;
 }
 
+// 予約の進み具合。引き渡し済み/キャンセルは終端状態。
+export const RESERVATION_STATUSES = ["予約中", "引き渡し待ち", "引き渡し済み", "キャンセル"] as const;
+
+export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+
+// 予約が完了・キャンセルのどちらでもなく、まだ対応が必要な状態かどうか。
+export function isActiveReservationStatus(status: ReservationStatus): boolean {
+  return status !== "引き渡し済み" && status !== "キャンセル";
+}
+
 // 予約: 予約受付中の商品に対する予約1件。会員でない予約者もいるため
 // memberId は null を許容し、その場合は氏名・電話番号で本人確認する。
 export interface Reservation {
@@ -168,6 +186,30 @@ export interface Reservation {
   name: string;
   phoneNumber: string;
   reservedAt: string;
+  status: ReservationStatus;
 }
 
-export type ReservationInput = Omit<Reservation, "id" | "reservedAt">;
+export type ReservationInput = Omit<Reservation, "id" | "reservedAt" | "status">;
+
+// 出庫理由: 販売そのものはレジ(POS)側の取引のためここでは扱わない。
+// ここで管理するのは販売以外の理由で在庫が減る動き(店舗間振替・破損など)。
+export const STOCK_OUT_REASONS = ["店舗振替", "破損", "その他"] as const;
+
+export type StockOutReason = (typeof STOCK_OUT_REASONS)[number];
+
+export const STOCK_MOVEMENT_TYPES = ["入荷", "出庫"] as const;
+
+export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
+
+// 在庫増減の履歴: 個体管理しない商品(新品)向けに、いつ何個入荷/出庫したかを記録する。
+export interface StockMovement {
+  id: string;
+  productId: string;
+  type: StockMovementType;
+  quantity: number;
+  // 出庫の場合のみ使う。入荷では空文字。
+  reason: StockOutReason | "";
+  occurredAt: string;
+}
+
+export type StockMovementInput = Omit<StockMovement, "id">;

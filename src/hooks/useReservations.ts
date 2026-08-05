@@ -7,6 +7,7 @@ import {
   getServerSnapshot,
   getReservationsForProduct,
   addReservation,
+  updateReservationStatus,
   deleteReservation,
   deleteReservationsForProduct,
 } from "@/lib/reservationStore";
@@ -17,6 +18,7 @@ export function useReservations() {
     reservations,
     getReservationsForProduct,
     addReservation,
+    updateReservationStatus,
     deleteReservation,
     deleteReservationsForProduct,
   };

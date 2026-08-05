@@ -1,7 +1,7 @@
-import { Reservation, ReservationInput } from "./types";
+import { Reservation, ReservationInput, ReservationStatus } from "./types";
 import { mockReservations } from "./mockData";
 
-const STORAGE_KEY = "rental-reservations-v1";
+const STORAGE_KEY = "rental-reservations-v2";
 
 let reservations: Reservation[] | null = null;
 const listeners = new Set<() => void>();
@@ -56,9 +56,16 @@ export function addReservation(input: ReservationInput): Reservation {
     ...input,
     id: crypto.randomUUID(),
     reservedAt: new Date().toISOString(),
+    status: "予約中",
   };
   persistAndNotify([...ensureLoaded(), newReservation]);
   return newReservation;
+}
+
+export function updateReservationStatus(id: string, status: ReservationStatus) {
+  persistAndNotify(
+    ensureLoaded().map((r) => (r.id === id ? { ...r, status } : r))
+  );
 }
 
 export function deleteReservation(id: string) {

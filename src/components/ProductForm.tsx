@@ -6,17 +6,20 @@ import Link from "next/link";
 import { useProducts } from "@/hooks/useProducts";
 import { useInventory } from "@/hooks/useInventory";
 import { useCopies } from "@/hooks/useCopies";
+import { useStockMovements } from "@/hooks/useStockMovements";
 import { fileToResizedDataUrl } from "@/lib/resizeImage";
 import {
   CATEGORIES,
   PUBLISH_STATUSES,
   RELEASE_STATUSES,
   AGE_RATINGS,
+  CD_TYPES,
   Category,
   DealType,
   PublishStatus,
   ReleaseStatus,
   AgeRating,
+  CdType,
   isRentalDealType,
   hasIndividualUnits,
 } from "@/lib/types";
@@ -40,6 +43,7 @@ interface FormState {
   subtitleLanguages: string;
   audioLanguages: string;
   ageRating: AgeRating;
+  cdType: CdType | "";
   dealType: DealType;
   publishStatus: PublishStatus;
   releaseStatus: ReleaseStatus | "";
@@ -65,6 +69,7 @@ const emptyForm: FormState = {
   subtitleLanguages: "",
   audioLanguages: "",
   ageRating: "指定なし",
+  cdType: "",
   dealType: "新品",
   publishStatus: PUBLISH_STATUSES[0],
   releaseStatus: "",
@@ -79,6 +84,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
   const { products, getProduct, addProduct, updateProduct } = useProducts();
   const { upsertInventory } = useInventory();
   const { addCopy } = useCopies();
+  const { addStockMovement } = useStockMovements();
 
   const existingProduct =
     mode === "edit" && productId ? getProduct(productId) : undefined;
@@ -98,6 +104,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
           subtitleLanguages: existingProduct.subtitleLanguages,
           audioLanguages: existingProduct.audioLanguages,
           ageRating: existingProduct.ageRating,
+          cdType: existingProduct.cdType ?? "",
           dealType: existingProduct.dealType,
           publishStatus: existingProduct.publishStatus,
           releaseStatus: existingProduct.releaseStatus ?? "",
@@ -138,6 +145,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
   const rentalEligible = isRentalDealType(effectiveDealType);
   const unitTracked = hasIndividualUnits(effectiveDealType);
   const isDvd = form.category === "DVD・ブルーレイ";
+  const isCd = form.category === "CD";
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -174,6 +182,10 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       if (isDuplicate) nextErrors.code = "この商品コードは既に使われています";
     }
 
+    if (isCd && form.cdType === "") {
+      nextErrors.cdType = "シングル/アルバムを選択してください";
+    }
+
     if (mode === "create") {
       const initialStock = Number(form.initialStock);
       if (
@@ -208,6 +220,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       subtitleLanguages: isDvd ? form.subtitleLanguages.trim() : "",
       audioLanguages: isDvd ? form.audioLanguages.trim() : "",
       ageRating: isDvd ? form.ageRating : "指定なし",
+      cdType: isCd && form.cdType !== "" ? form.cdType : null,
       dealType: effectiveDealType,
       publishStatus: form.publishStatus,
       releaseStatus: rentalEligible
@@ -220,6 +233,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
     if (mode === "create") {
       const created = addProduct(productInput);
       const initialStock = Number(form.initialStock);
+      const today = new Date().toISOString().slice(0, 10);
       upsertInventory(created.id, {
         store: "本店",
         // 個体(Copy)単位で管理する区分は在庫個体から集計するため、ここでの stock は使わない
@@ -227,8 +241,17 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
         // 販売価格・買取価格は本社が決定するため、登録時点では未設定
         salePrice: 0,
         buybackPrice: 0,
-        arrivedAt: new Date().toISOString().slice(0, 10),
+        arrivedAt: today,
       });
+      if (!unitTracked && initialStock > 0) {
+        addStockMovement({
+          productId: created.id,
+          type: "入荷",
+          quantity: initialStock,
+          reason: "",
+          occurredAt: today,
+        });
+      }
       if (unitTracked) {
         for (let i = 1; i <= initialStock; i++) {
           addCopy({
@@ -393,6 +416,22 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                   </select>
                 </Field>
               </>
+            )}
+            {isCd && (
+              <Field label="シングル/アルバム" error={errors.cdType}>
+                <select
+                  value={form.cdType}
+                  onChange={(e) => update("cdType", e.target.value as CdType)}
+                  className={inputClass}
+                >
+                  <option value="">選択してください</option>
+                  {CD_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </Field>
             )}
             <Field label="公開状態">
               <select

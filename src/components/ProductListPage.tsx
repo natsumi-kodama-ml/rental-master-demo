@@ -7,6 +7,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { useCopies } from "@/hooks/useCopies";
 import { useRentalLogs } from "@/hooks/useRentalLogs";
 import { useReservations } from "@/hooks/useReservations";
+import { useStockMovements } from "@/hooks/useStockMovements";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { useFilterPrefs } from "@/hooks/useFilterPrefs";
 import { ProductRow } from "@/lib/listColumns";
@@ -20,6 +21,7 @@ export default function ProductListPage() {
   const { copies, deleteCopiesForProduct } = useCopies();
   const { deleteLogsForProduct } = useRentalLogs();
   const { deleteReservationsForProduct } = useReservations();
+  const { deleteMovementsForProduct } = useStockMovements();
   const { visibleColumns } = useColumnVisibility();
   const { filters, setFilters, resetFilters } = useFilterPrefs();
   const { search, category, genre, publishStatus } = filters;
@@ -108,6 +110,7 @@ export default function ProductListPage() {
       deleteCopiesForProduct(id);
       deleteLogsForProduct(id);
       deleteReservationsForProduct(id);
+      deleteMovementsForProduct(id);
       deleteInventory(id);
       deleteProduct(id);
     });
