@@ -4,6 +4,7 @@ const STYLES: Record<DealType, string> = {
   新品: "bg-navy-100 text-navy-700",
   中古: "bg-amber-100 text-amber-700",
   レンタル: "bg-gold-400 text-navy-900",
+  レンタル落ち: "bg-orange-100 text-orange-700",
 };
 
 export default function DealTypeBadge({ dealType }: { dealType: DealType }) {

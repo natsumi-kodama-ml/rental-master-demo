@@ -1,7 +1,7 @@
 import { Copy, CopyInput } from "./types";
 import { mockCopies } from "./mockData";
 
-const STORAGE_KEY = "rental-copies-v2";
+const STORAGE_KEY = "rental-copies-v3";
 
 let copies: Copy[] | null = null;
 const listeners = new Set<() => void>();
@@ -73,6 +73,19 @@ export function updateCopyStatus(
       c.id === copyId
         ? { ...c, status, ...(condition !== undefined ? { condition } : {}) }
         : c
+    )
+  );
+}
+
+// レンタル落ちで中古販売に回すとき、個体を新しい中古商品の行に付け替える。
+export function moveCopyToProduct(
+  copyId: string,
+  newProductId: string,
+  status: Copy["status"]
+) {
+  persistAndNotify(
+    ensureLoaded().map((c) =>
+      c.id === copyId ? { ...c, productId: newProductId, status } : c
     )
   );
 }

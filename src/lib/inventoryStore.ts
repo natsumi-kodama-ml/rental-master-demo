@@ -1,7 +1,7 @@
 import { Inventory, InventoryInput } from "./types";
 import { mockInventory } from "./mockData";
 
-const STORAGE_KEY = "rental-inventory-v2";
+const STORAGE_KEY = "rental-inventory-v3";
 
 let inventory: Inventory[] | null = null;
 const listeners = new Set<() => void>();

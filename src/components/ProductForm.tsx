@@ -11,10 +11,12 @@ import {
   CATEGORIES,
   PUBLISH_STATUSES,
   RELEASE_STATUSES,
+  AGE_RATINGS,
   Category,
   DealType,
   PublishStatus,
   ReleaseStatus,
+  AgeRating,
   isRentalDealType,
   hasIndividualUnits,
 } from "@/lib/types";
@@ -37,6 +39,7 @@ interface FormState {
   rentalStartDate: string;
   subtitleLanguages: string;
   audioLanguages: string;
+  ageRating: AgeRating;
   dealType: DealType;
   publishStatus: PublishStatus;
   releaseStatus: ReleaseStatus | "";
@@ -61,6 +64,7 @@ const emptyForm: FormState = {
   rentalStartDate: "",
   subtitleLanguages: "",
   audioLanguages: "",
+  ageRating: "指定なし",
   dealType: "新品",
   publishStatus: PUBLISH_STATUSES[0],
   releaseStatus: "",
@@ -93,6 +97,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
           rentalStartDate: existingProduct.rentalStartDate,
           subtitleLanguages: existingProduct.subtitleLanguages,
           audioLanguages: existingProduct.audioLanguages,
+          ageRating: existingProduct.ageRating,
           dealType: existingProduct.dealType,
           publishStatus: existingProduct.publishStatus,
           releaseStatus: existingProduct.releaseStatus ?? "",
@@ -111,15 +116,25 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-gray-600">商品が見つかりませんでした。</p>
-        <Link href="/" className="text-sm text-navy-700 hover:underline">
-          一覧に戻る
-        </Link>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="w-fit text-sm text-navy-700 hover:underline"
+        >
+          戻る
+        </button>
       </div>
     );
   }
 
+  // レンタル落ちは個体の取り消し操作からしか作られないため、区分選択の対象外。
+  // 既存のレンタル落ち商品を編集する場合はその値をそのまま維持する。
   const effectiveDealType: DealType =
-    form.category === "ゲーム" ? form.dealType : "レンタル";
+    form.category === "ゲーム"
+      ? form.dealType
+      : form.dealType === "レンタル落ち"
+        ? "レンタル落ち"
+        : "レンタル";
   const rentalEligible = isRentalDealType(effectiveDealType);
   const unitTracked = hasIndividualUnits(effectiveDealType);
   const isDvd = form.category === "DVD・ブルーレイ";
@@ -192,6 +207,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       rentalStartDate: rentalEligible ? form.rentalStartDate : "",
       subtitleLanguages: isDvd ? form.subtitleLanguages.trim() : "",
       audioLanguages: isDvd ? form.audioLanguages.trim() : "",
+      ageRating: isDvd ? form.ageRating : "指定なし",
       dealType: effectiveDealType,
       publishStatus: form.publishStatus,
       releaseStatus: rentalEligible
@@ -290,7 +306,12 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                   <option value="中古">中古</option>
                 </select>
               ) : (
-                <input type="text" value="レンタル" disabled className={inputClass} />
+                <input
+                  type="text"
+                  value={effectiveDealType}
+                  disabled
+                  className={inputClass}
+                />
               )}
             </Field>
             <Field label="対応機種・メディア" hint="例: Switch, PS5, Blu-ray, DVD, CD">
@@ -358,6 +379,19 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                     className={inputClass}
                   />
                 </Field>
+                <Field label="年齢指定">
+                  <select
+                    value={form.ageRating}
+                    onChange={(e) => update("ageRating", e.target.value as AgeRating)}
+                    className={inputClass}
+                  >
+                    {AGE_RATINGS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
               </>
             )}
             <Field label="公開状態">
@@ -370,7 +404,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
               >
                 {PUBLISH_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {s === "販売中" && rentalEligible ? "レンタル中" : s}
                   </option>
                 ))}
               </select>

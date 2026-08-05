@@ -8,6 +8,7 @@ import {
   getLogsForProduct,
   getOpenLogForCopy,
   getLogsForMember,
+  getLogsForCopy,
   deleteLogsForProduct,
 } from "@/lib/rentalLogStore";
 
@@ -18,6 +19,7 @@ export function useRentalLogs() {
     getLogsForProduct,
     getOpenLogForCopy,
     getLogsForMember,
+    getLogsForCopy,
     deleteLogsForProduct,
   };
 }

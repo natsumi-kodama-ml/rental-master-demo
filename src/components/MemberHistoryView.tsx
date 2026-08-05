@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useProducts } from "@/hooks/useProducts";
 import { useCopies } from "@/hooks/useCopies";
 import { useRentalLogs } from "@/hooks/useRentalLogs";
@@ -20,6 +21,7 @@ function isOverdue(dueDate: string): boolean {
 }
 
 export default function MemberHistoryView({ memberId }: { memberId: string }) {
+  const router = useRouter();
   const { getProduct } = useProducts();
   const { getCopy } = useCopies();
   const { getLogsForMember } = useRentalLogs();
@@ -28,9 +30,13 @@ export default function MemberHistoryView({ memberId }: { memberId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/" className="text-sm font-medium text-navy-700 hover:underline">
-        ← 一覧に戻る
-      </Link>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="w-fit text-sm font-medium text-navy-700 hover:underline"
+      >
+        ← 戻る
+      </button>
 
       <div className="rounded-lg border border-gray-200 bg-white p-6">
         <h1 className="text-xl font-bold text-navy-900">会員 {memberId} の貸出履歴</h1>
@@ -45,6 +51,7 @@ export default function MemberHistoryView({ memberId }: { memberId: string }) {
                   <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">商品</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">個体番号</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">貸出日</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">返却予定日</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">返却日</th>
                 </tr>
               </thead>
@@ -66,20 +73,32 @@ export default function MemberHistoryView({ memberId }: { memberId: string }) {
                           "-"
                         )}
                       </td>
-                      <td className="px-3 py-2 text-gray-600">{copy?.copyCode ?? "-"}</td>
+                      <td className="px-3 py-2 text-gray-600">
+                        {copy ? (
+                          <Link
+                            href={`/copies/${copy.id}`}
+                            className="text-navy-700 hover:underline"
+                          >
+                            {copy.copyCode}
+                          </Link>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-gray-600">
                         {formatDateOnly(log.rentedAt)}
                       </td>
                       <td className="px-3 py-2 text-gray-600">
-                        {log.returnedAt ? (
-                          formatDateOnly(log.returnedAt)
-                        ) : isOverdue(log.dueDate) ? (
+                        {!log.returnedAt && isOverdue(log.dueDate) ? (
                           <span className="font-semibold text-rose-600">
-                            貸出中(延滞)
+                            {formatDateOnly(log.dueDate)}(延滞)
                           </span>
                         ) : (
-                          "貸出中"
+                          formatDateOnly(log.dueDate)
                         )}
+                      </td>
+                      <td className="px-3 py-2 text-gray-600">
+                        {log.returnedAt ? formatDateOnly(log.returnedAt) : "貸出中"}
                       </td>
                     </tr>
                   );

@@ -1,7 +1,7 @@
 import { RentalLog } from "./types";
 import { mockRentalLogs } from "./mockData";
 
-const STORAGE_KEY = "rental-logs-v2";
+const STORAGE_KEY = "rental-logs-v3";
 
 let logs: RentalLog[] | null = null;
 const listeners = new Set<() => void>();
@@ -56,6 +56,12 @@ export function getOpenLogForCopy(copyId: string): RentalLog | undefined {
 export function getLogsForMember(memberId: string): RentalLog[] {
   return ensureLoaded()
     .filter((l) => l.memberId === memberId)
+    .sort((a, b) => (a.rentedAt < b.rentedAt ? 1 : -1));
+}
+
+export function getLogsForCopy(copyId: string): RentalLog[] {
+  return ensureLoaded()
+    .filter((l) => l.copyId === copyId)
     .sort((a, b) => (a.rentedAt < b.rentedAt ? 1 : -1));
 }
 

@@ -25,14 +25,13 @@ export function getStockCount(row: ProductRow): number {
   return row.inventory?.stock ?? 0;
 }
 
-// レンタル対象のうち、今すぐ貸し出せる個体数(在庫数のうちの内訳)。
-export function getAvailableCount(row: ProductRow): number {
-  return row.copies.filter((c) => c.status === "貸出可能").length;
-}
-
-// レンタル落ちで中古販売の棚に並んでいる個体数(まだ売れていないもの)。
-export function getUsedForSaleCount(row: ProductRow): number {
-  return row.copies.filter((c) => c.status === "在庫").length;
+// レンタル対象のうち、今すぐ貸し出せる個体数。新品/中古はすべての在庫が
+// そのまま店頭在庫になるため在庫総数と同じ値を返す。
+export function getShelfStockCount(row: ProductRow): number {
+  if (isRentalDealType(row.product.dealType)) {
+    return row.copies.filter((c) => c.status === "貸出可能").length;
+  }
+  return getStockCount(row);
 }
 
 export type ColumnKey =
@@ -44,10 +43,11 @@ export type ColumnKey =
   | "maker"
   | "janCode"
   | "releaseDate"
-  | "publishStatus"
-  | "stock"
+  | "totalStock"
+  | "shelfStock"
   | "releaseStatus"
-  | "updatedAt";
+  | "updatedAt"
+  | "publishStatus";
 
 interface ColumnDef {
   key: ColumnKey;
@@ -78,16 +78,7 @@ export const COLUMN_DEFS: ColumnDef[] = [
   {
     key: "dealType",
     label: "区分",
-    render: (r) => (
-      <div className="flex items-center gap-1">
-        <DealTypeBadge dealType={r.product.dealType} />
-        {isRentalDealType(r.product.dealType) && getUsedForSaleCount(r) > 0 && (
-          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-            中古{getUsedForSaleCount(r)}点
-          </span>
-        )}
-      </div>
-    ),
+    render: (r) => <DealTypeBadge dealType={r.product.dealType} />,
     sortValue: (r) => r.product.dealType,
   },
   {
@@ -121,20 +112,18 @@ export const COLUMN_DEFS: ColumnDef[] = [
     sortValue: (r) => r.product.releaseDate,
   },
   {
-    key: "publishStatus",
-    label: "公開状態",
-    render: (r) => <PublishStatusBadge status={r.product.publishStatus} />,
-    sortValue: (r) => r.product.publishStatus,
+    key: "totalStock",
+    label: "在庫総数",
+    align: "right",
+    render: (r) => String(getStockCount(r)),
+    sortValue: (r) => getStockCount(r),
   },
   {
-    key: "stock",
-    label: "在庫数(レンタルは貸出可能/総数)",
+    key: "shelfStock",
+    label: "店頭在庫(貸出可能数)",
     align: "right",
-    render: (r) =>
-      isRentalDealType(r.product.dealType)
-        ? `${getAvailableCount(r)} / ${getStockCount(r)}`
-        : String(getStockCount(r)),
-    sortValue: (r) => getStockCount(r),
+    render: (r) => String(getShelfStockCount(r)),
+    sortValue: (r) => getShelfStockCount(r),
   },
   {
     key: "releaseStatus",
@@ -152,6 +141,14 @@ export const COLUMN_DEFS: ColumnDef[] = [
     label: "更新日",
     render: (r) => formatDate(r.product.updatedAt),
     sortValue: (r) => r.product.updatedAt,
+  },
+  {
+    key: "publishStatus",
+    label: "公開状態",
+    render: (r) => (
+      <PublishStatusBadge status={r.product.publishStatus} dealType={r.product.dealType} />
+    ),
+    sortValue: (r) => r.product.publishStatus,
   },
 ];
 

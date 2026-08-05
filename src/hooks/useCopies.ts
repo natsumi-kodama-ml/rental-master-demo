@@ -9,6 +9,7 @@ import {
   getCopy,
   addCopy,
   updateCopyStatus,
+  moveCopyToProduct,
   deleteCopiesForProduct,
 } from "@/lib/copyStore";
 
@@ -20,6 +21,7 @@ export function useCopies() {
     getCopy,
     addCopy,
     updateCopyStatus,
+    moveCopyToProduct,
     deleteCopiesForProduct,
   };
 }

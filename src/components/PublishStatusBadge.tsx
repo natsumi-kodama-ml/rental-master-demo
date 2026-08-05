@@ -1,4 +1,4 @@
-import { PublishStatus } from "@/lib/types";
+import { DealType, PublishStatus, isRentalDealType } from "@/lib/types";
 
 const STYLES: Record<PublishStatus, string> = {
   販売中: "bg-emerald-100 text-emerald-700",
@@ -12,13 +12,28 @@ const DOT: Record<PublishStatus, string> = {
   取扱終了: "bg-gray-400",
 };
 
-export default function PublishStatusBadge({ status }: { status: PublishStatus }) {
+// 値そのものは新品/中古/レンタル共通の"販売中"のままだが、レンタル品では
+// 「販売」ではないため表示上だけ「レンタル中」に出し分ける。
+function displayLabel(status: PublishStatus, dealType?: DealType): string {
+  if (status === "販売中" && dealType && isRentalDealType(dealType)) {
+    return "レンタル中";
+  }
+  return status;
+}
+
+export default function PublishStatusBadge({
+  status,
+  dealType,
+}: {
+  status: PublishStatus;
+  dealType?: DealType;
+}) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${STYLES[status]}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${DOT[status]}`} />
-      {status}
+      {displayLabel(status, dealType)}
     </span>
   );
 }

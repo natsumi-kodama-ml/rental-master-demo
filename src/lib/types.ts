@@ -2,9 +2,11 @@ export const CATEGORIES = ["ゲーム", "DVD・ブルーレイ", "CD", "コミ�
 
 export type Category = (typeof CATEGORIES)[number];
 
-// 区分: この商品が新品販売/中古販売/レンタルのどれとして扱われるか。
+// 区分: この商品が新品販売/中古販売/レンタル/レンタル落ちのどれとして扱われるか。
 // 同じタイトルでも新品と中古は別商品(別の行)として登録する。
-export const DEAL_TYPES = ["新品", "中古", "レンタル"] as const;
+// 「レンタル落ち」は中古と違い、レンタルから引退した個体をまとめて売る区分で、
+// 個体ごとのコンディションは記録しない(中古は個体ごとに記録する)。
+export const DEAL_TYPES = ["新品", "中古", "レンタル", "レンタル落ち"] as const;
 
 export type DealType = (typeof DEAL_TYPES)[number];
 
@@ -16,14 +18,19 @@ export const RELEASE_STATUSES = ["新作", "準新作", "旧作"] as const;
 
 export type ReleaseStatus = (typeof RELEASE_STATUSES)[number];
 
+// 年齢指定: DVD・ブルーレイのみで使う映倫レーティング。それ以外のカテゴリは常に「指定なし」。
+export const AGE_RATINGS = ["指定なし", "R15+", "R18+"] as const;
+
+export type AgeRating = (typeof AGE_RATINGS)[number];
+
 // レンタル対象(在庫個体での管理)かどうかは区分で決まる。
 export function isRentalDealType(dealType: DealType): boolean {
   return dealType === "レンタル";
 }
 
-// 直接の販売価格を持つ(新品/中古として売る)商品かどうか。
+// 直接の販売価格を持つ(新品/中古/レンタル落ちとして売る)商品かどうか。
 export function canSellDealType(dealType: DealType): boolean {
-  return dealType === "新品" || dealType === "中古";
+  return dealType === "新品" || dealType === "中古" || dealType === "レンタル落ち";
 }
 
 // 買取に対応するのはゲームのみ(新品・中古どちらの商品行でも買取自体は受け付ける)。
@@ -62,6 +69,8 @@ export interface Product {
   // 字幕・音声対応言語: DVD・ブルーレイのみで使う。それ以外では空文字。
   subtitleLanguages: string;
   audioLanguages: string;
+  // DVD・ブルーレイ以外は常に"指定なし"。
+  ageRating: AgeRating;
   dealType: DealType;
   publishStatus: PublishStatus;
   releaseStatus: ReleaseStatus | null;
@@ -88,9 +97,12 @@ export interface Inventory {
 
 export type InventoryInput = Omit<Inventory, "productId" | "updatedAt">;
 
-// 「在庫」は中古販売個体、「貸出可能」「貸出中」はレンタル個体で使う状態。
+// 「在庫」は中古販売個体(個体ごとにコンディションを持つ)、「レンタル落ち」は
+// レンタルから引退して中古販売に回った個体(コンディションは一律で記録しない)、
+// 「貸出可能」「貸出中」はレンタル個体で使う状態。
 export const COPY_STATUSES = [
   "在庫",
+  "レンタル落ち",
   "貸出可能",
   "貸出中",
   "点検中",
@@ -102,7 +114,13 @@ export const COPY_STATUSES = [
 export type CopyStatus = (typeof COPY_STATUSES)[number];
 
 // 個体が実際に在庫として数えられる状態。
-export const ACTIVE_COPY_STATUSES: CopyStatus[] = ["在庫", "貸出可能", "貸出中", "点検中"];
+export const ACTIVE_COPY_STATUSES: CopyStatus[] = [
+  "在庫",
+  "レンタル落ち",
+  "貸出可能",
+  "貸出中",
+  "点検中",
+];
 
 // 個体が「引退」した(貸出・在庫カウントの対象外になった)状態。
 export const RETIRED_COPY_STATUSES: CopyStatus[] = ["廃棄", "返品", "販売済み"];
@@ -140,6 +158,7 @@ export interface Reservation {
   productId: string;
   reservationNumber: string;
   memberId: string | null;
+  // 電話予約の聞き取りで記録するためカタカナ表記。
   name: string;
   phoneNumber: string;
   reservedAt: string;
