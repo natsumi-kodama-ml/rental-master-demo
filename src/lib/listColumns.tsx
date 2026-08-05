@@ -25,13 +25,11 @@ export function getStockCount(row: ProductRow): number {
   return row.inventory?.stock ?? 0;
 }
 
-// レンタル対象のうち、今すぐ貸し出せる個体数。新品/中古はすべての在庫が
-// そのまま店頭在庫になるため在庫総数と同じ値を返す。
-export function getShelfStockCount(row: ProductRow): number {
-  if (isRentalDealType(row.product.dealType)) {
-    return row.copies.filter((c) => c.status === "貸出可能").length;
-  }
-  return getStockCount(row);
+// レンタル対象のうち、今すぐ貸し出せる個体数。販売(新品/中古/レンタル落ち)は
+// 「貸出可能数」という概念自体が存在しないため対象外(null)。
+export function getShelfStockCount(row: ProductRow): number | null {
+  if (!isRentalDealType(row.product.dealType)) return null;
+  return row.copies.filter((c) => c.status === "貸出可能").length;
 }
 
 export type ColumnKey =
@@ -122,8 +120,11 @@ export const COLUMN_DEFS: ColumnDef[] = [
     key: "shelfStock",
     label: "店頭在庫(貸出可能数)",
     align: "right",
-    render: (r) => String(getShelfStockCount(r)),
-    sortValue: (r) => getShelfStockCount(r),
+    render: (r) => {
+      const count = getShelfStockCount(r);
+      return count === null ? "-" : String(count);
+    },
+    sortValue: (r) => getShelfStockCount(r) ?? -1,
   },
   {
     key: "releaseStatus",

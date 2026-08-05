@@ -96,7 +96,7 @@ export default function CopyHistoryView({ copyId }: { copyId: string }) {
                       )}
                     </td>
                     <td className="px-3 py-2 text-gray-600">
-                      {log.returnedAt ? formatDateOnly(log.returnedAt) : "貸出中"}
+                      {log.returnedAt ? formatDateOnly(log.returnedAt) : "-"}
                     </td>
                   </tr>
                 ))}

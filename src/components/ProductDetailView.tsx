@@ -11,6 +11,7 @@ import {
   Copy,
   CopyStatus,
   RETIRED_COPY_STATUSES,
+  canReserve,
   canSellDealType,
   canSellRetiredCopies,
   hasIndividualUnits,
@@ -99,7 +100,7 @@ export default function ProductDetailView({ productId }: { productId: string }) 
   const canSellUsedCopies = canSellRetiredCopies(product.category);
   const showSalePrice = sellEligible || canSellUsedCopies;
   const isDvd = product.category === "DVD・ブルーレイ";
-  const isPreorder = product.publishStatus === "予約受付中";
+  const isPreorder = product.publishStatus === "予約受付中" && canReserve(product.category);
   const reservations = getReservationsForProduct(productId);
   const copies = getCopiesForProduct(productId);
   const activeCount = copies.filter((c) => !RETIRED_COPY_STATUSES.includes(c.status)).length;
