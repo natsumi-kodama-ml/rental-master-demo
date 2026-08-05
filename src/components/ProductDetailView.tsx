@@ -8,6 +8,7 @@ import { useCopies } from "@/hooks/useCopies";
 import { useRentalLogs } from "@/hooks/useRentalLogs";
 import { useReservations } from "@/hooks/useReservations";
 import {
+  Copy,
   CopyStatus,
   RETIRED_COPY_STATUSES,
   canSellDealType,
@@ -113,6 +114,19 @@ export default function ProductDetailView({ productId }: { productId: string }) 
 
   function canEditCopyStatus(status: CopyStatus): boolean {
     return EDITABLE_FROM_STATUSES.includes(status);
+  }
+
+  function handleCopyStatusChange(copy: Copy, nextStatus: CopyStatus) {
+    if (nextStatus === "在庫" && copy.status !== "在庫") {
+      const condition =
+        window.prompt(
+          "コンディションを入力してください(例: 美品, 中古A)",
+          copy.condition
+        ) ?? copy.condition;
+      updateCopyStatus(copy.id, nextStatus, condition.trim());
+      return;
+    }
+    updateCopyStatus(copy.id, nextStatus);
   }
 
   function handleReceiveUnits() {
@@ -424,7 +438,7 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                                 <select
                                   value={copy.status}
                                   onChange={(e) =>
-                                    updateCopyStatus(copy.id, e.target.value as CopyStatus)
+                                    handleCopyStatusChange(copy, e.target.value as CopyStatus)
                                   }
                                   className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-navy-600 focus:outline-none"
                                 >

@@ -63,9 +63,17 @@ export function addCopy(input: CopyInput): Copy {
   return newCopy;
 }
 
-export function updateCopyStatus(copyId: string, status: Copy["status"]) {
+export function updateCopyStatus(
+  copyId: string,
+  status: Copy["status"],
+  condition?: string
+) {
   persistAndNotify(
-    ensureLoaded().map((c) => (c.id === copyId ? { ...c, status } : c))
+    ensureLoaded().map((c) =>
+      c.id === copyId
+        ? { ...c, status, ...(condition !== undefined ? { condition } : {}) }
+        : c
+    )
   );
 }
 
