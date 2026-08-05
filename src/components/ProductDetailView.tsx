@@ -341,7 +341,7 @@ export default function ProductDetailView({ productId }: { productId: string }) 
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <DealTypeBadge dealType={product.dealType} />
-                {rentalEligible && product.category !== "CD" && (
+                {rentalEligible && product.category !== "CD" && product.category !== "コミック" && (
                   <ReleaseStatusPill status={product.releaseStatus} />
                 )}
                 {product.cdType && <CdTierBadge cdType={product.cdType} />}

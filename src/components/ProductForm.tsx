@@ -146,6 +146,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
   const unitTracked = hasIndividualUnits(effectiveDealType);
   const isDvd = form.category === "DVD・ブルーレイ";
   const isCd = form.category === "CD";
+  const isComic = form.category === "コミック";
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -224,7 +225,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       dealType: effectiveDealType,
       publishStatus: form.publishStatus,
       releaseStatus:
-        rentalEligible && !isCd
+        rentalEligible && !isCd && !isComic
           ? form.releaseStatus === ""
             ? null
             : form.releaseStatus
@@ -451,7 +452,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 ))}
               </select>
             </Field>
-            {rentalEligible && !isCd && (
+            {rentalEligible && !isCd && !isComic && (
               <Field label="新作/準新作/旧作">
                 <select
                   value={form.releaseStatus}
