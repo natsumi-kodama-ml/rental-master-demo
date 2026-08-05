@@ -9,15 +9,13 @@ import { useCopies } from "@/hooks/useCopies";
 import { fileToResizedDataUrl } from "@/lib/resizeImage";
 import {
   CATEGORIES,
-  CONDITION_TYPES,
   PUBLISH_STATUSES,
   RELEASE_STATUSES,
   Category,
-  ConditionType,
+  DealType,
   PublishStatus,
   ReleaseStatus,
-  isRentalCategory,
-  canSellCategory,
+  isRentalDealType,
 } from "@/lib/types";
 import ProductImage from "./ProductImage";
 
@@ -35,11 +33,10 @@ interface FormState {
   maker: string;
   platform: string;
   releaseDate: string;
-  conditionType: ConditionType;
+  dealType: DealType;
   publishStatus: PublishStatus;
   releaseStatus: ReleaseStatus | "";
   imageUrl: string;
-  description: string;
   notes: string;
   initialStock: string;
 }
@@ -56,11 +53,10 @@ const emptyForm: FormState = {
   maker: "",
   platform: "",
   releaseDate: new Date().toISOString().slice(0, 10),
-  conditionType: CONDITION_TYPES[0],
+  dealType: "新品",
   publishStatus: PUBLISH_STATUSES[0],
   releaseStatus: "",
   imageUrl: "",
-  description: "",
   notes: "",
   initialStock: "0",
 };
@@ -85,11 +81,10 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
           maker: existingProduct.maker,
           platform: existingProduct.platform,
           releaseDate: existingProduct.releaseDate,
-          conditionType: existingProduct.conditionType,
+          dealType: existingProduct.dealType,
           publishStatus: existingProduct.publishStatus,
           releaseStatus: existingProduct.releaseStatus ?? "",
           imageUrl: existingProduct.imageUrl,
-          description: existingProduct.description,
           notes: existingProduct.notes,
           initialStock: "0",
         }
@@ -110,8 +105,9 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
     );
   }
 
-  const rentalEligible = isRentalCategory(form.category);
-  const sellEligible = canSellCategory(form.category);
+  const effectiveDealType: DealType =
+    form.category === "ゲーム" ? form.dealType : "レンタル";
+  const rentalEligible = isRentalDealType(effectiveDealType);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -178,13 +174,12 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       maker: form.maker.trim(),
       platform: form.platform.trim(),
       releaseDate: form.releaseDate,
-      conditionType: sellEligible ? form.conditionType : "中古のみ" as ConditionType,
+      dealType: effectiveDealType,
       publishStatus: form.publishStatus,
       releaseStatus: rentalEligible
         ? (form.releaseStatus === "" ? null : form.releaseStatus)
         : null,
       imageUrl: form.imageUrl,
-      description: form.description.trim(),
       notes: form.notes.trim(),
     };
 
@@ -266,7 +261,29 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 ))}
               </select>
             </Field>
-            <Field label="ジャンル" hint="例: RPG, 邦楽, 邦画など">
+            <Field label="区分">
+              {form.category === "ゲーム" ? (
+                <select
+                  value={form.dealType}
+                  onChange={(e) => update("dealType", e.target.value as DealType)}
+                  className={inputClass}
+                >
+                  <option value="新品">新品</option>
+                  <option value="中古">中古</option>
+                </select>
+              ) : (
+                <input type="text" value="レンタル" disabled className={inputClass} />
+              )}
+            </Field>
+            <Field label="対応機種・メディア" hint="例: Switch, PS5, Blu-ray, DVD, CD">
+              <input
+                type="text"
+                value={form.platform}
+                onChange={(e) => update("platform", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="ジャンル" hint="例: RPG, 邦楽, 邦画, 少年/少女/青年(コミック)など">
               <input
                 type="text"
                 value={form.genre}
@@ -277,21 +294,13 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
           </div>
         </FormSection>
 
-        <FormSection title="商品詳細" description="メーカーや対応機種などの詳細情報です">
+        <FormSection title="商品詳細" description="メーカーや発売日などの詳細情報です">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="メーカー・発売元">
               <input
                 type="text"
                 value={form.maker}
                 onChange={(e) => update("maker", e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="対応機種・メディア" hint="例: Switch, PS5, Blu-ray, DVD, CD">
-              <input
-                type="text"
-                value={form.platform}
-                onChange={(e) => update("platform", e.target.value)}
                 className={inputClass}
               />
             </Field>
@@ -303,34 +312,6 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 className={inputClass}
               />
             </Field>
-            {sellEligible && (
-              <Field
-                label="新品/中古取扱区分"
-                hint={
-                  rentalEligible
-                    ? "レンタル対象はレンタル落ちの中古販売のみのため「中古のみ」固定です"
-                    : undefined
-                }
-              >
-                {rentalEligible ? (
-                  <input type="text" value="中古のみ" disabled className={inputClass} />
-                ) : (
-                  <select
-                    value={form.conditionType}
-                    onChange={(e) =>
-                      update("conditionType", e.target.value as ConditionType)
-                    }
-                    className={inputClass}
-                  >
-                    {CONDITION_TYPES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-            )}
             <Field label="公開状態">
               <select
                 value={form.publishStatus}
@@ -435,16 +416,6 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 </button>
               )}
             </div>
-          </div>
-          <div className="mt-4">
-            <Field label="商品説明">
-              <textarea
-                value={form.description}
-                onChange={(e) => update("description", e.target.value)}
-                rows={3}
-                className={inputClass}
-              />
-            </Field>
           </div>
         </FormSection>
 

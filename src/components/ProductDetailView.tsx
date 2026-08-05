@@ -8,12 +8,14 @@ import { useRentalLogs } from "@/hooks/useRentalLogs";
 import {
   CopyStatus,
   RETIRED_COPY_STATUSES,
-  canSellCategory,
-  isBuybackCategory,
-  isRentalCategory,
+  canSellDealType,
+  canSellRetiredCopies,
+  isBuybackEligible,
+  isRentalDealType,
 } from "@/lib/types";
 import PublishStatusBadge from "./PublishStatusBadge";
 import ReleaseStatusPill from "./ReleaseStatusPill";
+import DealTypeBadge from "./DealTypeBadge";
 import ProductImage from "./ProductImage";
 
 function formatDateTime(iso: string) {
@@ -61,16 +63,18 @@ export default function ProductDetailView({ productId }: { productId: string }) 
     );
   }
 
-  const rentalEligible = isRentalCategory(product.category);
-  const buybackEligible = isBuybackCategory(product.category);
-  const sellEligible = canSellCategory(product.category);
+  const rentalEligible = isRentalDealType(product.dealType);
+  const buybackEligible = isBuybackEligible(product.category, product.dealType);
+  const sellEligible = canSellDealType(product.dealType);
+  const canSellUsedCopies = canSellRetiredCopies(product.category);
+  const showSalePrice = sellEligible || canSellUsedCopies;
   const copies = getCopiesForProduct(productId);
   const logs = getLogsForProduct(productId);
   const closedLogs = logs
     .filter((l) => l.returnedAt !== null)
     .sort((a, b) => (a.rentedAt < b.rentedAt ? 1 : -1));
   const activeCount = copies.filter((c) => !RETIRED_COPY_STATUSES.includes(c.status)).length;
-  const retireStatuses = sellEligible
+  const retireStatuses = canSellUsedCopies
     ? RETIRE_STATUSES_BY_SELL.sell
     : RETIRE_STATUSES_BY_SELL.noSell;
   const editableCopyStatuses: CopyStatus[] = ["貸出可能", "点検中", ...retireStatuses];
@@ -134,11 +138,10 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                 {product.code} ・ {product.category}
                 {product.genre && ` ・ ${product.genre}`}
               </p>
-              {rentalEligible && (
-                <div className="mt-2">
-                  <ReleaseStatusPill status={product.releaseStatus} />
-                </div>
-              )}
+              <div className="mt-2 flex items-center gap-2">
+                <DealTypeBadge dealType={product.dealType} />
+                {rentalEligible && <ReleaseStatusPill status={product.releaseStatus} />}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -156,16 +159,9 @@ export default function ProductDetailView({ productId }: { productId: string }) 
           <Stat label="メーカー・発売元" value={product.maker || "-"} />
           <Stat label="対応機種・メディア" value={product.platform || "-"} />
           <Stat label="発売日" value={formatDateOnly(product.releaseDate)} />
-          {sellEligible && <Stat label="新品/中古区分" value={product.conditionType} />}
         </div>
 
         <dl className="mt-6 flex flex-col gap-4 border-t border-gray-100 pt-6 text-sm">
-          <div>
-            <dt className="font-medium text-gray-600">商品説明</dt>
-            <dd className="mt-1 whitespace-pre-wrap text-gray-800">
-              {product.description || "(未入力)"}
-            </dd>
-          </div>
           <div>
             <dt className="font-medium text-gray-600">備考</dt>
             <dd className="mt-1 whitespace-pre-wrap text-gray-800">
@@ -187,7 +183,7 @@ export default function ProductDetailView({ productId }: { productId: string }) 
         <div className="mt-6 border-t border-gray-100 pt-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-bold text-navy-900">
-              在庫情報(本店・別テーブル管理)
+              在庫情報({inventory?.store ?? "店舗"}・商品マスタとは別テーブルで管理)
             </h2>
             {!rentalEligible && (
               <button
@@ -205,11 +201,11 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                 label="在庫数"
                 value={String(rentalEligible ? activeCount : inventory.stock)}
               />
-              {!rentalEligible && (
-                <Stat label="商品状態" value={inventory.itemCondition || "-"} />
+              {!rentalEligible && product.dealType === "中古" && (
+                <Stat label="中古品の状態" value={inventory.itemCondition || "-"} />
               )}
               <Stat label="入荷日" value={formatDateOnly(inventory.arrivedAt)} />
-              {sellEligible && (
+              {showSalePrice && (
                 <Stat
                   label="販売価格"
                   value={`¥${inventory.salePrice.toLocaleString()}`}
@@ -253,7 +249,8 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">個体番号</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">状態</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">貸出中の相手/返却予定日</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">貸出中の会員ID</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">返却予定日</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -286,9 +283,10 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                             )}
                           </td>
                           <td className="px-3 py-2 text-gray-600">
-                            {openLog
-                              ? `${openLog.borrowerName} / ${formatDateOnly(openLog.dueDate)}まで`
-                              : "-"}
+                            {openLog ? openLog.memberId : "-"}
+                          </td>
+                          <td className="px-3 py-2 text-gray-600">
+                            {openLog ? formatDateOnly(openLog.dueDate) : "-"}
                           </td>
                         </tr>
                       );
@@ -299,38 +297,47 @@ export default function ProductDetailView({ productId }: { productId: string }) 
             )}
 
             <h3 className="mb-2 mt-6 text-xs font-bold text-gray-500">
-              貸出履歴(返却済み・参考情報)
+              貸出履歴(返却済み・参考情報、個体ごと)
             </h3>
             {closedLogs.length === 0 ? (
               <p className="text-xs text-gray-400">貸出履歴はまだありません。</p>
             ) : (
-              <div className="overflow-x-auto rounded-md border border-gray-200">
-                <table className="w-full min-w-[480px] text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">個体番号</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">借主</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">貸出日</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">返却日</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {closedLogs.map((log) => (
-                      <tr key={log.id}>
-                        <td className="px-3 py-2 text-gray-700">
-                          {copies.find((c) => c.id === log.copyId)?.copyCode ?? "-"}
-                        </td>
-                        <td className="px-3 py-2 text-gray-700">{log.borrowerName}</td>
-                        <td className="px-3 py-2 text-gray-600">
-                          {formatDateOnly(log.rentedAt)}
-                        </td>
-                        <td className="px-3 py-2 text-gray-600">
-                          {formatDateOnly(log.returnedAt ?? "")}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flex flex-col gap-4">
+                {copies
+                  .filter((copy) => closedLogs.some((log) => log.copyId === copy.id))
+                  .map((copy) => (
+                    <div key={copy.id}>
+                      <p className="mb-1 text-xs font-semibold text-navy-700">
+                        {copy.copyCode}
+                      </p>
+                      <div className="overflow-x-auto rounded-md border border-gray-200">
+                        <table className="w-full min-w-[360px] text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">会員ID</th>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">貸出日</th>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">返却日</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {closedLogs
+                              .filter((log) => log.copyId === copy.id)
+                              .map((log) => (
+                                <tr key={log.id}>
+                                  <td className="px-3 py-2 text-gray-700">{log.memberId}</td>
+                                  <td className="px-3 py-2 text-gray-600">
+                                    {formatDateOnly(log.rentedAt)}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-600">
+                                    {formatDateOnly(log.returnedAt ?? "")}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
               </div>
             )}
           </div>

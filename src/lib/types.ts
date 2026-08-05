@@ -2,13 +2,11 @@ export const CATEGORIES = ["ゲーム", "DVD・ブルーレイ", "CD", "コミ�
 
 export type Category = (typeof CATEGORIES)[number];
 
-export const CONDITION_TYPES = [
-  "新品のみ",
-  "中古のみ",
-  "新品・中古両方",
-] as const;
+// 区分: この商品が新品販売/中古販売/レンタルのどれとして扱われるか。
+// 同じタイトルでも新品と中古は別商品(別の行)として登録する。
+export const DEAL_TYPES = ["新品", "中古", "レンタル"] as const;
 
-export type ConditionType = (typeof CONDITION_TYPES)[number];
+export type DealType = (typeof DEAL_TYPES)[number];
 
 export const PUBLISH_STATUSES = ["販売中", "予約受付中", "取扱終了"] as const;
 
@@ -18,20 +16,25 @@ export const RELEASE_STATUSES = ["新作", "準新作", "旧作"] as const;
 
 export type ReleaseStatus = (typeof RELEASE_STATUSES)[number];
 
-// レンタル対象になるのはDVD・ブルーレイ/CD/コミック。ゲームのみ販売専用。
-export function isRentalCategory(category: Category): boolean {
-  return category !== "ゲーム";
+// レンタル対象(在庫個体での管理)かどうかは区分で決まる。
+export function isRentalDealType(dealType: DealType): boolean {
+  return dealType === "レンタル";
 }
 
-// 買取に対応するのはゲームのみ。
-export function isBuybackCategory(category: Category): boolean {
-  return category === "ゲーム";
+// 直接の販売価格を持つ(新品/中古として売る)商品かどうか。
+export function canSellDealType(dealType: DealType): boolean {
+  return dealType === "新品" || dealType === "中古";
 }
 
-// 販売という取引が存在するカテゴリ。ゲームは新品/中古で販売、
-// DVD・ブルーレイはレンタル落ちのみ中古販売。CD/コミックは販売経路自体がない。
-export function canSellCategory(category: Category): boolean {
-  return category === "ゲーム" || category === "DVD・ブルーレイ";
+// 買取に対応するのはゲームの中古品のみ。
+export function isBuybackEligible(category: Category, dealType: DealType): boolean {
+  return category === "ゲーム" && dealType === "中古";
+}
+
+// レンタル対象カテゴリのうち、引退した個体を中古販売できるカテゴリ。
+// DVD・ブルーレイのみレンタル落ちを中古販売する。CD/コミックは販売経路自体がない。
+export function canSellRetiredCopies(category: Category): boolean {
+  return category === "DVD・ブルーレイ";
 }
 
 // 商品マスタ: 「商品そのもの」の情報を持つ。在庫数・価格は持たない。
@@ -47,10 +50,9 @@ export interface Product {
   maker: string;
   platform: string;
   releaseDate: string;
-  conditionType: ConditionType;
+  dealType: DealType;
   publishStatus: PublishStatus;
   releaseStatus: ReleaseStatus | null;
-  description: string;
   imageUrl: string;
   notes: string;
   createdAt: string;
@@ -110,7 +112,7 @@ export interface RentalLog {
   id: string;
   copyId: string;
   productId: string;
-  borrowerName: string;
+  memberId: string;
   rentedAt: string;
   dueDate: string;
   returnedAt: string | null;

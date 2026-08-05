@@ -4,10 +4,11 @@ import {
   Copy,
   Inventory,
   Product,
-  isRentalCategory,
+  isRentalDealType,
 } from "./types";
 import PublishStatusBadge from "@/components/PublishStatusBadge";
 import ReleaseStatusPill from "@/components/ReleaseStatusPill";
+import DealTypeBadge from "@/components/DealTypeBadge";
 
 export interface ProductRow {
   product: Product;
@@ -18,7 +19,7 @@ export interface ProductRow {
 // レンタル対象は在庫個体(Copy)から集計し、それ以外は Inventory.stock を使う。
 // 貸出可能かどうかは個体ごとの状態欄で見るため、ここでは単純な在庫数のみを返す。
 export function getStockCount(row: ProductRow): number {
-  if (isRentalCategory(row.product.category)) {
+  if (isRentalDealType(row.product.dealType)) {
     return row.copies.filter((c) => ACTIVE_COPY_STATUSES.includes(c.status)).length;
   }
   return row.inventory?.stock ?? 0;
@@ -27,9 +28,10 @@ export function getStockCount(row: ProductRow): number {
 export type ColumnKey =
   | "code"
   | "category"
+  | "dealType"
+  | "platform"
   | "genre"
   | "maker"
-  | "platform"
   | "janCode"
   | "releaseDate"
   | "publishStatus"
@@ -64,6 +66,18 @@ export const COLUMN_DEFS: ColumnDef[] = [
     sortValue: (r) => r.product.category,
   },
   {
+    key: "dealType",
+    label: "区分",
+    render: (r) => <DealTypeBadge dealType={r.product.dealType} />,
+    sortValue: (r) => r.product.dealType,
+  },
+  {
+    key: "platform",
+    label: "対応機種・メディア",
+    render: (r) => r.product.platform || "-",
+    sortValue: (r) => r.product.platform,
+  },
+  {
     key: "genre",
     label: "ジャンル",
     render: (r) => r.product.genre || "-",
@@ -74,12 +88,6 @@ export const COLUMN_DEFS: ColumnDef[] = [
     label: "メーカー・発売元",
     render: (r) => r.product.maker || "-",
     sortValue: (r) => r.product.maker,
-  },
-  {
-    key: "platform",
-    label: "対応機種・メディア",
-    render: (r) => r.product.platform || "-",
-    sortValue: (r) => r.product.platform,
   },
   {
     key: "janCode",
@@ -110,7 +118,7 @@ export const COLUMN_DEFS: ColumnDef[] = [
     key: "releaseStatus",
     label: "新作/準新作/旧作",
     render: (r) =>
-      isRentalCategory(r.product.category) ? (
+      isRentalDealType(r.product.dealType) ? (
         <ReleaseStatusPill status={r.product.releaseStatus} />
       ) : (
         <span className="text-xs text-gray-300">(対象外)</span>
@@ -128,8 +136,9 @@ export const COLUMN_DEFS: ColumnDef[] = [
 export const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = [
   "code",
   "category",
+  "dealType",
+  "platform",
   "genre",
   "maker",
-  "platform",
   "publishStatus",
 ];
