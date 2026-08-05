@@ -84,7 +84,8 @@ export default function ProductFilters({
           onChange={(e) => onPublishStatusChange(e.target.value)}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-navy-600 focus:outline-none"
         >
-          <option value="all">すべて</option>
+          <option value="active">取扱終了を除く</option>
+          <option value="all">すべて(取扱終了を含む)</option>
           {PUBLISH_STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}

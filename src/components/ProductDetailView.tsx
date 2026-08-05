@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useProducts } from "@/hooks/useProducts";
 import { useInventory } from "@/hooks/useInventory";
 import { useCopies } from "@/hooks/useCopies";
@@ -37,19 +36,16 @@ function formatDateOnly(iso: string) {
   });
 }
 
-const RETIRE_REASONS_BY_SELL: Record<"sell" | "noSell", CopyStatus[]> = {
+const RETIRE_STATUSES_BY_SELL: Record<"sell" | "noSell", CopyStatus[]> = {
   sell: ["廃棄", "返品", "販売済み"],
   noSell: ["廃棄", "返品"],
 };
 
 export default function ProductDetailView({ productId }: { productId: string }) {
-  const router = useRouter();
-  const { getProduct, deleteProduct } = useProducts();
-  const { getInventory, deleteInventory } = useInventory();
-  const { getCopiesForProduct, addCopy, updateCopyStatus, deleteCopiesForProduct } =
-    useCopies();
-  const { getLogsForProduct, getOpenLogForCopy, deleteLogsForProduct } =
-    useRentalLogs();
+  const { getProduct } = useProducts();
+  const { getInventory, upsertInventory } = useInventory();
+  const { getCopiesForProduct, addCopy, updateCopyStatus } = useCopies();
+  const { getLogsForProduct, getOpenLogForCopy } = useRentalLogs();
 
   const product = getProduct(productId);
   const inventory = getInventory(productId);
@@ -73,21 +69,11 @@ export default function ProductDetailView({ productId }: { productId: string }) 
   const closedLogs = logs
     .filter((l) => l.returnedAt !== null)
     .sort((a, b) => (a.rentedAt < b.rentedAt ? 1 : -1));
-  const availableCount = copies.filter((c) => c.status === "貸出可能").length;
   const activeCount = copies.filter((c) => !RETIRED_COPY_STATUSES.includes(c.status)).length;
-
-  function handleDelete() {
-    if (!product) return;
-    const confirmed = window.confirm(
-      `「${product.name}」を削除します。この操作は取り消せません。よろしいですか？`
-    );
-    if (!confirmed) return;
-    deleteCopiesForProduct(product.id);
-    deleteLogsForProduct(product.id);
-    deleteInventory(product.id);
-    deleteProduct(product.id);
-    router.push("/");
-  }
+  const retireStatuses = sellEligible
+    ? RETIRE_STATUSES_BY_SELL.sell
+    : RETIRE_STATUSES_BY_SELL.noSell;
+  const editableCopyStatuses: CopyStatus[] = ["貸出可能", "点検中", ...retireStatuses];
 
   function handleReceiveCopies() {
     const input = window.prompt("入荷数を入力してください", "1");
@@ -104,23 +90,27 @@ export default function ProductDetailView({ productId }: { productId: string }) 
         productId,
         copyCode: `${product?.code}-${String(seq).padStart(2, "0")}`,
         status: "貸出可能",
-        condition: "良好",
       });
     }
   }
 
-  function handleRetireCopy(copyId: string) {
-    const reasons = sellEligible ? RETIRE_REASONS_BY_SELL.sell : RETIRE_REASONS_BY_SELL.noSell;
-    const answer = window.prompt(
-      `取り消す理由を入力してください(${reasons.join(" / ")})`,
-      reasons[0]
-    );
-    if (!answer) return;
-    if (!reasons.includes(answer as CopyStatus)) {
-      window.alert(`「${reasons.join(" / ")}」のいずれかを入力してください`);
+  function handleReceiveStock() {
+    if (!inventory) return;
+    const input = window.prompt("入荷数を入力してください", "1");
+    if (!input) return;
+    const count = Number(input);
+    if (!Number.isInteger(count) || count <= 0) {
+      window.alert("1以上の整数を入力してください");
       return;
     }
-    updateCopyStatus(copyId, answer as CopyStatus);
+    upsertInventory(productId, {
+      store: inventory.store,
+      stock: inventory.stock + count,
+      salePrice: inventory.salePrice,
+      buybackPrice: inventory.buybackPrice,
+      itemCondition: inventory.itemCondition,
+      arrivedAt: new Date().toISOString().slice(0, 10),
+    });
   }
 
   return (
@@ -145,22 +135,14 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                 {product.genre && ` ・ ${product.genre}`}
               </p>
               {rentalEligible && (
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2">
                   <ReleaseStatusPill status={product.releaseStatus} />
-                  <span className="text-xs text-gray-400">(手動設定)</span>
                 </div>
               )}
             </div>
           </div>
           <div className="flex items-center gap-3">
             <PublishStatusBadge status={product.publishStatus} />
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="rounded-full border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-500 transition hover:bg-rose-50"
-            >
-              削除
-            </button>
             <Link
               href={`/products/${product.id}/edit`}
               className="rounded-full bg-gold-400 px-5 py-2.5 text-sm font-bold text-navy-900 shadow-md transition hover:bg-gold-500"
@@ -177,23 +159,54 @@ export default function ProductDetailView({ productId }: { productId: string }) 
           {sellEligible && <Stat label="新品/中古区分" value={product.conditionType} />}
         </div>
 
+        <dl className="mt-6 flex flex-col gap-4 border-t border-gray-100 pt-6 text-sm">
+          <div>
+            <dt className="font-medium text-gray-600">商品説明</dt>
+            <dd className="mt-1 whitespace-pre-wrap text-gray-800">
+              {product.description || "(未入力)"}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-medium text-gray-600">備考</dt>
+            <dd className="mt-1 whitespace-pre-wrap text-gray-800">
+              {product.notes || "(なし)"}
+            </dd>
+          </div>
+          <div className="flex gap-8">
+            <div>
+              <dt className="font-medium text-gray-600">登録日</dt>
+              <dd className="mt-1 text-gray-800">{formatDateTime(product.createdAt)}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-gray-600">更新日</dt>
+              <dd className="mt-1 text-gray-800">{formatDateTime(product.updatedAt)}</dd>
+            </div>
+          </div>
+        </dl>
+
         <div className="mt-6 border-t border-gray-100 pt-6">
-          <h2 className="mb-3 text-sm font-bold text-navy-900">
-            在庫情報(本店・別テーブル管理)
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-navy-900">
+              在庫情報(本店・別テーブル管理)
+            </h2>
+            {!rentalEligible && (
+              <button
+                type="button"
+                onClick={handleReceiveStock}
+                className="rounded-full border border-navy-300 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-navy-50"
+              >
+                + 入荷登録
+              </button>
+            )}
+          </div>
           {inventory ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Stat
+                label="在庫数"
+                value={String(rentalEligible ? activeCount : inventory.stock)}
+              />
               {!rentalEligible && (
-                <>
-                  <Stat label="在庫数" value={String(inventory.stock)} />
-                  <Stat label="商品状態" value={inventory.itemCondition || "-"} />
-                </>
-              )}
-              {rentalEligible && (
-                <Stat
-                  label="在庫数(貸出可能/総数)"
-                  value={`${availableCount} / ${activeCount}`}
-                />
+                <Stat label="商品状態" value={inventory.itemCondition || "-"} />
               )}
               <Stat label="入荷日" value={formatDateOnly(inventory.arrivedAt)} />
               {sellEligible && (
@@ -207,34 +220,6 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                   label="買取価格"
                   value={`¥${inventory.buybackPrice.toLocaleString()}`}
                 />
-              )}
-              {rentalEligible && (
-                <>
-                  <Stat
-                    label="新作料金"
-                    value={
-                      inventory.rentalPriceNew != null
-                        ? `¥${inventory.rentalPriceNew.toLocaleString()}`
-                        : "-"
-                    }
-                  />
-                  <Stat
-                    label="準新作料金"
-                    value={
-                      inventory.rentalPriceSemiNew != null
-                        ? `¥${inventory.rentalPriceSemiNew.toLocaleString()}`
-                        : "-"
-                    }
-                  />
-                  <Stat
-                    label="旧作料金"
-                    value={
-                      inventory.rentalPriceOld != null
-                        ? `¥${inventory.rentalPriceOld.toLocaleString()}`
-                        : "-"
-                    }
-                  />
-                </>
               )}
             </div>
           ) : (
@@ -263,20 +248,18 @@ export default function ProductDetailView({ productId }: { productId: string }) 
               <p className="text-sm text-gray-400">在庫個体が未登録です。</p>
             ) : (
               <div className="overflow-x-auto rounded-md border border-gray-200">
-                <table className="w-full min-w-[560px] text-sm">
+                <table className="w-full min-w-[480px] text-sm">
                   <thead className="bg-navy-50">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">個体番号</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">状態</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">コンディション</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">貸出中の相手/返却予定日</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">操作</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {copies.map((copy) => {
                       const openLog = getOpenLogForCopy(copy.id);
-                      const canRetire =
+                      const canEditStatus =
                         copy.status === "貸出可能" || copy.status === "点検中";
                       return (
                         <tr key={copy.id}>
@@ -284,24 +267,28 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                             {copy.copyCode}
                           </td>
                           <td className="px-3 py-2">
-                            <CopyStatusBadge status={copy.status} />
+                            {canEditStatus ? (
+                              <select
+                                value={copy.status}
+                                onChange={(e) =>
+                                  updateCopyStatus(copy.id, e.target.value as CopyStatus)
+                                }
+                                className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-navy-600 focus:outline-none"
+                              >
+                                {editableCopyStatuses.map((s) => (
+                                  <option key={s} value={s}>
+                                    {s}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <CopyStatusBadge status={copy.status} />
+                            )}
                           </td>
-                          <td className="px-3 py-2 text-gray-600">{copy.condition}</td>
                           <td className="px-3 py-2 text-gray-600">
                             {openLog
                               ? `${openLog.borrowerName} / ${formatDateOnly(openLog.dueDate)}まで`
                               : "-"}
-                          </td>
-                          <td className="px-3 py-2">
-                            {canRetire && (
-                              <button
-                                type="button"
-                                onClick={() => handleRetireCopy(copy.id)}
-                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-500 hover:bg-rose-50"
-                              >
-                                取り消す
-                              </button>
-                            )}
                           </td>
                         </tr>
                       );
@@ -348,31 +335,6 @@ export default function ProductDetailView({ productId }: { productId: string }) 
             )}
           </div>
         )}
-
-        <dl className="mt-6 flex flex-col gap-4 border-t border-gray-100 pt-6 text-sm">
-          <div>
-            <dt className="font-medium text-gray-600">商品説明</dt>
-            <dd className="mt-1 whitespace-pre-wrap text-gray-800">
-              {product.description || "(未入力)"}
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium text-gray-600">備考</dt>
-            <dd className="mt-1 whitespace-pre-wrap text-gray-800">
-              {product.notes || "(なし)"}
-            </dd>
-          </div>
-          <div className="flex gap-8">
-            <div>
-              <dt className="font-medium text-gray-600">登録日</dt>
-              <dd className="mt-1 text-gray-800">{formatDateTime(product.createdAt)}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-gray-600">更新日</dt>
-              <dd className="mt-1 text-gray-800">{formatDateTime(product.updatedAt)}</dd>
-            </div>
-          </div>
-        </dl>
       </div>
     </div>
   );

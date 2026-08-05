@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { COLUMN_DEFS, ColumnKey, ProductRow } from "@/lib/listColumns";
 
@@ -47,13 +47,30 @@ function SortableHeader({
 export default function ProductTable({
   rows,
   visibleColumns,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
 }: {
   rows: ProductRow[];
   visibleColumns: ColumnKey[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: () => void;
 }) {
   const columns = COLUMN_DEFS.filter((col) => visibleColumns.includes(col.key));
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const allSelected =
+    rows.length > 0 && rows.every((r) => selectedIds.has(r.product.id));
+  const someSelected = rows.some((r) => selectedIds.has(r.product.id));
+  const selectAllRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected && !allSelected;
+    }
+  }, [someSelected, allSelected]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -85,6 +102,16 @@ export default function ProductTable({
       <table className="w-full min-w-[760px] divide-y divide-gray-200 text-sm">
         <thead className="bg-navy-50">
           <tr>
+            <th className="w-10 px-4 py-2.5">
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                checked={allSelected}
+                onChange={onToggleSelectAll}
+                aria-label="すべて選択"
+                className="h-4 w-4 rounded border-gray-300 accent-gold-400"
+              />
+            </th>
             <SortableHeader
               sortKeyValue="name"
               active={sortKey === "name"}
@@ -120,7 +147,21 @@ export default function ProductTable({
         </thead>
         <tbody className="divide-y divide-gray-100">
           {sortedRows.map((row) => (
-            <tr key={row.product.id} className="hover:bg-navy-50/40">
+            <tr
+              key={row.product.id}
+              className={`hover:bg-navy-50/40 ${
+                selectedIds.has(row.product.id) ? "bg-gold-50" : ""
+              }`}
+            >
+              <td className="px-4 py-2">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(row.product.id)}
+                  onChange={() => onToggleSelect(row.product.id)}
+                  aria-label={`${row.product.name}を選択`}
+                  className="h-4 w-4 rounded border-gray-300 accent-gold-400"
+                />
+              </td>
               <td className="whitespace-nowrap px-4 py-2">
                 <Link
                   href={`/products/${row.product.id}`}

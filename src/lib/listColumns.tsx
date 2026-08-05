@@ -16,14 +16,8 @@ export interface ProductRow {
 }
 
 // レンタル対象は在庫個体(Copy)から集計し、それ以外は Inventory.stock を使う。
+// 貸出可能かどうかは個体ごとの状態欄で見るため、ここでは単純な在庫数のみを返す。
 export function getStockCount(row: ProductRow): number {
-  if (isRentalCategory(row.product.category)) {
-    return row.copies.filter((c) => c.status === "貸出可能").length;
-  }
-  return row.inventory?.stock ?? 0;
-}
-
-export function getTotalCopyCount(row: ProductRow): number {
   if (isRentalCategory(row.product.category)) {
     return row.copies.filter((c) => ACTIVE_COPY_STATUSES.includes(c.status)).length;
   }
@@ -107,12 +101,9 @@ export const COLUMN_DEFS: ColumnDef[] = [
   },
   {
     key: "stock",
-    label: "在庫数(在庫中/総数)",
+    label: "在庫数",
     align: "right",
-    render: (r) =>
-      isRentalCategory(r.product.category)
-        ? `${getStockCount(r)} / ${getTotalCopyCount(r)}`
-        : String(getStockCount(r)),
+    render: (r) => String(getStockCount(r)),
     sortValue: (r) => getStockCount(r),
   },
   {

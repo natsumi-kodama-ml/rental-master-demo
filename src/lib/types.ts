@@ -60,13 +60,12 @@ export interface Product {
 export type ProductInput = Omit<Product, "id" | "createdAt" | "updatedAt">;
 
 // 在庫: 「店舗ごとの価格」を持つ。商品マスタとは別の実体。
+// レンタル料金(新作/準新作/旧作ごと)は全店舗共通の料金表で決まるため、
+// 商品ごとには持たない。
 export interface Inventory {
   productId: string;
   store: string;
   stock: number;
-  rentalPriceNew: number | null;
-  rentalPriceSemiNew: number | null;
-  rentalPriceOld: number | null;
   salePrice: number;
   buybackPrice: number;
   itemCondition: string;
@@ -100,7 +99,6 @@ export interface Copy {
   productId: string;
   copyCode: string;
   status: CopyStatus;
-  condition: string;
   createdAt: string;
 }
 

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ゲーム・DVD・CD・コミック 商品マスタ管理",
+  title: "メディアショップ 商品マスタ管理",
   description: "ゲーム(販売)・DVD/CD/コミック(レンタル)を扱うショップの商品マスタ管理画面",
 };
 
@@ -35,7 +35,7 @@ export default function RootLayout({
               href="/"
               className="text-base font-bold tracking-wide text-white"
             >
-              ゲーム・DVD・CD・コミック 商品マスタ管理
+              メディアショップ 商品マスタ管理
             </Link>
           </div>
         </header>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useProducts } from "@/hooks/useProducts";
 import { useInventory } from "@/hooks/useInventory";
 import { useCopies } from "@/hooks/useCopies";
+import { useRentalLogs } from "@/hooks/useRentalLogs";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ProductRow } from "@/lib/listColumns";
 import ProductFilters from "./ProductFilters";
@@ -12,14 +13,16 @@ import ProductTable from "./ProductTable";
 import ColumnSettings from "./ColumnSettings";
 
 export default function ProductListPage() {
-  const { products } = useProducts();
-  const { inventory } = useInventory();
-  const { copies } = useCopies();
+  const { products, deleteProduct } = useProducts();
+  const { inventory, deleteInventory } = useInventory();
+  const { copies, deleteCopiesForProduct } = useCopies();
+  const { deleteLogsForProduct } = useRentalLogs();
   const { visibleColumns } = useColumnVisibility();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [genre, setGenre] = useState("all");
-  const [publishStatus, setPublishStatus] = useState("all");
+  const [publishStatus, setPublishStatus] = useState("active");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const rows: ProductRow[] = useMemo(
     () =>
@@ -47,7 +50,8 @@ export default function ProductListPage() {
       const matchesCategory = category === "all" || product.category === category;
       const matchesGenre = genre === "all" || product.genre === genre;
       const matchesPublishStatus =
-        publishStatus === "all" || product.publishStatus === publishStatus;
+        publishStatus === "all" ||
+        (publishStatus === "active" ? product.publishStatus !== "取扱終了" : product.publishStatus === publishStatus);
       return (
         matchesKeyword && matchesCategory && matchesGenre && matchesPublishStatus
       );
@@ -58,13 +62,60 @@ export default function ProductListPage() {
     search.trim() !== "" ||
     category !== "all" ||
     genre !== "all" ||
-    publishStatus !== "all";
+    publishStatus !== "active";
 
   function resetFilters() {
     setSearch("");
     setCategory("all");
     setGenre("all");
-    setPublishStatus("all");
+    setPublishStatus("active");
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      const allSelected =
+        filteredRows.length > 0 &&
+        filteredRows.every((r) => prev.has(r.product.id));
+      const next = new Set(prev);
+      filteredRows.forEach((r) => {
+        if (allSelected) {
+          next.delete(r.product.id);
+        } else {
+          next.add(r.product.id);
+        }
+      });
+      return next;
+    });
+  }
+
+  function handleBulkDelete() {
+    const confirmed = window.confirm(
+      `選択した${selectedIds.size}件を削除します。この操作は取り消せません。よろしいですか？`
+    );
+    if (!confirmed) return;
+    selectedIds.forEach((id) => {
+      deleteCopiesForProduct(id);
+      deleteLogsForProduct(id);
+      deleteInventory(id);
+      deleteProduct(id);
+    });
+    clearSelection();
   }
 
   return (
@@ -96,6 +147,28 @@ export default function ProductListPage() {
         <ColumnSettings />
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-gold-300 bg-gold-50 px-4 py-3 text-sm">
+          <span className="font-semibold text-navy-800">
+            {selectedIds.size}件選択中
+          </span>
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            className="rounded-full bg-white px-3 py-1.5 font-medium text-rose-500 shadow-sm hover:bg-rose-50"
+          >
+            削除
+          </button>
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="ml-auto text-xs text-navy-700 hover:underline"
+          >
+            選択解除
+          </button>
+        </div>
+      )}
+
       {filteredRows.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 bg-white p-8 text-center">
           <p className="text-sm text-gray-500">条件に一致する商品がありません</p>
@@ -115,7 +188,13 @@ export default function ProductListPage() {
           )}
         </div>
       ) : (
-        <ProductTable rows={filteredRows} visibleColumns={visibleColumns} />
+        <ProductTable
+          rows={filteredRows}
+          visibleColumns={visibleColumns}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
+        />
       )}
     </div>
   );
