@@ -4,6 +4,7 @@ import {
   Copy,
   Inventory,
   Product,
+  hasIndividualUnits,
   isRentalDealType,
 } from "./types";
 import PublishStatusBadge from "@/components/PublishStatusBadge";
@@ -19,7 +20,7 @@ export interface ProductRow {
 // レンタル対象は在庫個体(Copy)から集計し、それ以外は Inventory.stock を使う。
 // 貸出可能かどうかは個体ごとの状態欄で見るため、ここでは単純な在庫数のみを返す。
 export function getStockCount(row: ProductRow): number {
-  if (isRentalDealType(row.product.dealType)) {
+  if (hasIndividualUnits(row.product.dealType)) {
     return row.copies.filter((c) => ACTIVE_COPY_STATUSES.includes(c.status)).length;
   }
   return row.inventory?.stock ?? 0;

@@ -1,7 +1,7 @@
 import { Product, ProductInput } from "./types";
 import { mockProducts } from "./mockData";
 
-const STORAGE_KEY = "rental-products";
+const STORAGE_KEY = "rental-products-v2";
 
 let products: Product[] | null = null;
 const listeners = new Set<() => void>();

@@ -1,7 +1,7 @@
 import { Copy, CopyInput } from "./types";
 import { mockCopies } from "./mockData";
 
-const STORAGE_KEY = "rental-copies";
+const STORAGE_KEY = "rental-copies-v2";
 
 let copies: Copy[] | null = null;
 const listeners = new Set<() => void>();
@@ -47,6 +47,10 @@ export function getServerSnapshot(): Copy[] {
 
 export function getCopiesForProduct(productId: string): Copy[] {
   return ensureLoaded().filter((c) => c.productId === productId);
+}
+
+export function getCopy(copyId: string): Copy | undefined {
+  return ensureLoaded().find((c) => c.id === copyId);
 }
 
 export function addCopy(input: CopyInput): Copy {

@@ -1,7 +1,7 @@
 import { RentalLog } from "./types";
 import { mockRentalLogs } from "./mockData";
 
-const STORAGE_KEY = "rental-logs";
+const STORAGE_KEY = "rental-logs-v2";
 
 let logs: RentalLog[] | null = null;
 const listeners = new Set<() => void>();
@@ -51,6 +51,12 @@ export function getLogsForProduct(productId: string): RentalLog[] {
 
 export function getOpenLogForCopy(copyId: string): RentalLog | undefined {
   return ensureLoaded().find((l) => l.copyId === copyId && l.returnedAt === null);
+}
+
+export function getLogsForMember(memberId: string): RentalLog[] {
+  return ensureLoaded()
+    .filter((l) => l.memberId === memberId)
+    .sort((a, b) => (a.rentedAt < b.rentedAt ? 1 : -1));
 }
 
 // 貸出・返却の記録自体は接客時のレジ(POS)側システムが作る想定で、

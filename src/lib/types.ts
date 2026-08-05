@@ -26,15 +26,21 @@ export function canSellDealType(dealType: DealType): boolean {
   return dealType === "新品" || dealType === "中古";
 }
 
-// 買取に対応するのはゲームの中古品のみ。
-export function isBuybackEligible(category: Category, dealType: DealType): boolean {
-  return category === "ゲーム" && dealType === "中古";
+// 買取に対応するのはゲームのみ(新品・中古どちらの商品行でも買取自体は受け付ける)。
+export function isBuybackEligible(category: Category): boolean {
+  return category === "ゲーム";
 }
 
 // レンタル対象カテゴリのうち、引退した個体を中古販売できるカテゴリ。
 // DVD・ブルーレイのみレンタル落ちを中古販売する。CD/コミックは販売経路自体がない。
 export function canSellRetiredCopies(category: Category): boolean {
   return category === "DVD・ブルーレイ";
+}
+
+// 新品は個体ごとの差がないため個体管理は不要。中古は個体ごとにコンディションが
+// 異なるため、レンタル対象と同様に個体(Copy)単位で管理する。
+export function hasIndividualUnits(dealType: DealType): boolean {
+  return dealType !== "新品";
 }
 
 // 商品マスタ: 「商品そのもの」の情報を持つ。在庫数・価格は持たない。
@@ -50,6 +56,12 @@ export interface Product {
   maker: string;
   platform: string;
   releaseDate: string;
+  // レンタル開始日: 発売日と同時にレンタルを始めるとは限らないため別で持つ。
+  // レンタル対象(dealType === "レンタル")以外では空文字。
+  rentalStartDate: string;
+  // 字幕・音声対応言語: DVD・ブルーレイのみで使う。それ以外では空文字。
+  subtitleLanguages: string;
+  audioLanguages: string;
   dealType: DealType;
   publishStatus: PublishStatus;
   releaseStatus: ReleaseStatus | null;
@@ -70,14 +82,15 @@ export interface Inventory {
   stock: number;
   salePrice: number;
   buybackPrice: number;
-  itemCondition: string;
   arrivedAt: string;
   updatedAt: string;
 }
 
 export type InventoryInput = Omit<Inventory, "productId" | "updatedAt">;
 
+// 「在庫」は中古販売個体、「貸出可能」「貸出中」はレンタル個体で使う状態。
 export const COPY_STATUSES = [
+  "在庫",
   "貸出可能",
   "貸出中",
   "点検中",
@@ -88,19 +101,21 @@ export const COPY_STATUSES = [
 
 export type CopyStatus = (typeof COPY_STATUSES)[number];
 
-// 個体が実際に貸出可能な在庫として数えられる状態。
-export const ACTIVE_COPY_STATUSES: CopyStatus[] = ["貸出可能", "貸出中", "点検中"];
+// 個体が実際に在庫として数えられる状態。
+export const ACTIVE_COPY_STATUSES: CopyStatus[] = ["在庫", "貸出可能", "貸出中", "点検中"];
 
 // 個体が「引退」した(貸出・在庫カウントの対象外になった)状態。
 export const RETIRED_COPY_STATUSES: CopyStatus[] = ["廃棄", "返品", "販売済み"];
 
-// 個体(コピー): レンタル対象カテゴリの「1枚1枚」を管理する。
+// 個体(コピー): レンタル対象・中古販売対象カテゴリの「1枚1枚」を管理する。
 // 在庫数・貸出中数はここから集計するため、Inventory.stock とは別管理。
+// condition(コンディション)は中古販売個体でのみ使う。レンタル個体では空文字。
 export interface Copy {
   id: string;
   productId: string;
   copyCode: string;
   status: CopyStatus;
+  condition: string;
   createdAt: string;
 }
 

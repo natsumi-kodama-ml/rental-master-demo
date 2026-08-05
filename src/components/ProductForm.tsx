@@ -16,6 +16,7 @@ import {
   PublishStatus,
   ReleaseStatus,
   isRentalDealType,
+  hasIndividualUnits,
 } from "@/lib/types";
 import ProductImage from "./ProductImage";
 
@@ -33,12 +34,16 @@ interface FormState {
   maker: string;
   platform: string;
   releaseDate: string;
+  rentalStartDate: string;
+  subtitleLanguages: string;
+  audioLanguages: string;
   dealType: DealType;
   publishStatus: PublishStatus;
   releaseStatus: ReleaseStatus | "";
   imageUrl: string;
   notes: string;
   initialStock: string;
+  initialCondition: string;
 }
 
 const inputClass =
@@ -53,12 +58,16 @@ const emptyForm: FormState = {
   maker: "",
   platform: "",
   releaseDate: new Date().toISOString().slice(0, 10),
+  rentalStartDate: "",
+  subtitleLanguages: "",
+  audioLanguages: "",
   dealType: "新品",
   publishStatus: PUBLISH_STATUSES[0],
   releaseStatus: "",
   imageUrl: "",
   notes: "",
   initialStock: "0",
+  initialCondition: "",
 };
 
 export default function ProductForm({ mode, productId }: ProductFormProps) {
@@ -81,12 +90,16 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
           maker: existingProduct.maker,
           platform: existingProduct.platform,
           releaseDate: existingProduct.releaseDate,
+          rentalStartDate: existingProduct.rentalStartDate,
+          subtitleLanguages: existingProduct.subtitleLanguages,
+          audioLanguages: existingProduct.audioLanguages,
           dealType: existingProduct.dealType,
           publishStatus: existingProduct.publishStatus,
           releaseStatus: existingProduct.releaseStatus ?? "",
           imageUrl: existingProduct.imageUrl,
           notes: existingProduct.notes,
           initialStock: "0",
+          initialCondition: "",
         }
       : emptyForm
   );
@@ -108,6 +121,8 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
   const effectiveDealType: DealType =
     form.category === "ゲーム" ? form.dealType : "レンタル";
   const rentalEligible = isRentalDealType(effectiveDealType);
+  const unitTracked = hasIndividualUnits(effectiveDealType);
+  const isDvd = form.category === "DVD・ブルーレイ";
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -174,6 +189,9 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       maker: form.maker.trim(),
       platform: form.platform.trim(),
       releaseDate: form.releaseDate,
+      rentalStartDate: rentalEligible ? form.rentalStartDate : "",
+      subtitleLanguages: isDvd ? form.subtitleLanguages.trim() : "",
+      audioLanguages: isDvd ? form.audioLanguages.trim() : "",
       dealType: effectiveDealType,
       publishStatus: form.publishStatus,
       releaseStatus: rentalEligible
@@ -188,20 +206,20 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
       const initialStock = Number(form.initialStock);
       upsertInventory(created.id, {
         store: "本店",
-        // レンタル対象は在庫個体(Copy)から集計するため、ここでの stock は使わない
-        stock: rentalEligible ? 0 : initialStock,
+        // 個体(Copy)単位で管理する区分は在庫個体から集計するため、ここでの stock は使わない
+        stock: unitTracked ? 0 : initialStock,
         // 販売価格・買取価格は本社が決定するため、登録時点では未設定
         salePrice: 0,
         buybackPrice: 0,
-        itemCondition: "",
         arrivedAt: new Date().toISOString().slice(0, 10),
       });
-      if (rentalEligible) {
+      if (unitTracked) {
         for (let i = 1; i <= initialStock; i++) {
           addCopy({
             productId: created.id,
             copyCode: `${created.code}-${String(i).padStart(2, "0")}`,
-            status: "貸出可能",
+            status: rentalEligible ? "貸出可能" : "在庫",
+            condition: rentalEligible ? "" : form.initialCondition.trim(),
           });
         }
       }
@@ -312,6 +330,36 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                 className={inputClass}
               />
             </Field>
+            {rentalEligible && (
+              <Field label="レンタル開始日">
+                <input
+                  type="date"
+                  value={form.rentalStartDate}
+                  onChange={(e) => update("rentalStartDate", e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+            )}
+            {isDvd && (
+              <>
+                <Field label="字幕対応言語" hint="例: 日本語">
+                  <input
+                    type="text"
+                    value={form.subtitleLanguages}
+                    onChange={(e) => update("subtitleLanguages", e.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="音声対応言語" hint="例: 日本語(吹替)/英語(オリジナル)">
+                  <input
+                    type="text"
+                    value={form.audioLanguages}
+                    onChange={(e) => update("audioLanguages", e.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+              </>
+            )}
             <Field label="公開状態">
               <select
                 value={form.publishStatus}
@@ -349,10 +397,7 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
         </FormSection>
 
         {mode === "create" && (
-          <FormSection
-            title="在庫情報"
-            description="店舗ごとの在庫です(商品マスタとは別テーブルで管理)"
-          >
+          <FormSection title="在庫情報">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field
                 label="初期入荷数"
@@ -366,15 +411,25 @@ export default function ProductForm({ mode, productId }: ProductFormProps) {
                   className={inputClass}
                 />
               </Field>
+              {effectiveDealType === "中古" && (
+                <Field
+                  label="コンディション"
+                  hint="例: 美品, 中古A, 中古B(傷あり)"
+                >
+                  <input
+                    type="text"
+                    value={form.initialCondition}
+                    onChange={(e) => update("initialCondition", e.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+              )}
             </div>
           </FormSection>
         )}
 
         {mode === "edit" && (
-          <FormSection
-            title="在庫情報"
-            description="店舗ごとの在庫です(商品マスタとは別テーブルで管理)"
-          >
+          <FormSection title="在庫情報">
             <p className="text-xs text-gray-500">
               追加入荷・取り消しや価格の確認は商品詳細ページで行ってください。
             </p>

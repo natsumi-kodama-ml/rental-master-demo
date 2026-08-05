@@ -6,6 +6,7 @@ import {
   getSnapshot,
   getServerSnapshot,
   getCopiesForProduct,
+  getCopy,
   addCopy,
   updateCopyStatus,
   deleteCopiesForProduct,
@@ -16,6 +17,7 @@ export function useCopies() {
   return {
     copies,
     getCopiesForProduct,
+    getCopy,
     addCopy,
     updateCopyStatus,
     deleteCopiesForProduct,
