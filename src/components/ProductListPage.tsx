@@ -7,6 +7,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { useCopies } from "@/hooks/useCopies";
 import { useRentalLogs } from "@/hooks/useRentalLogs";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { useFilterPrefs } from "@/hooks/useFilterPrefs";
 import { ProductRow } from "@/lib/listColumns";
 import ProductFilters from "./ProductFilters";
 import ProductTable from "./ProductTable";
@@ -18,10 +19,8 @@ export default function ProductListPage() {
   const { copies, deleteCopiesForProduct } = useCopies();
   const { deleteLogsForProduct } = useRentalLogs();
   const { visibleColumns } = useColumnVisibility();
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
-  const [genre, setGenre] = useState("all");
-  const [publishStatus, setPublishStatus] = useState("active");
+  const { filters, setFilters, resetFilters } = useFilterPrefs();
+  const { search, category, genre, publishStatus } = filters;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const rows: ProductRow[] = useMemo(
@@ -64,13 +63,6 @@ export default function ProductListPage() {
     category !== "all" ||
     genre !== "all" ||
     publishStatus !== "active";
-
-  function resetFilters() {
-    setSearch("");
-    setCategory("all");
-    setGenre("all");
-    setPublishStatus("active");
-  }
 
   function clearSelection() {
     setSelectedIds(new Set());
@@ -133,14 +125,14 @@ export default function ProductListPage() {
 
       <ProductFilters
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={(value) => setFilters({ search: value })}
         category={category}
-        onCategoryChange={setCategory}
+        onCategoryChange={(value) => setFilters({ category: value })}
         genre={genre}
-        onGenreChange={setGenre}
+        onGenreChange={(value) => setFilters({ genre: value })}
         genreOptions={genreOptions}
         publishStatus={publishStatus}
-        onPublishStatusChange={setPublishStatus}
+        onPublishStatusChange={(value) => setFilters({ publishStatus: value })}
       />
 
       <div className="flex items-center justify-between">
