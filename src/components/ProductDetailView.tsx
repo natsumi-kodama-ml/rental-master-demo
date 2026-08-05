@@ -11,6 +11,7 @@ import { useStockMovements } from "@/hooks/useStockMovements";
 import {
   Copy,
   CopyStatus,
+  RESERVATION_STATUSES,
   Reservation,
   ReservationStatus,
   RETIRED_COPY_STATUSES,
@@ -26,7 +27,6 @@ import {
 import PublishStatusBadge from "./PublishStatusBadge";
 import ReleaseStatusPill from "./ReleaseStatusPill";
 import DealTypeBadge from "./DealTypeBadge";
-import CdTypeBadge from "./CdTypeBadge";
 import ProductImage from "./ProductImage";
 
 function formatDateTime(iso: string) {
@@ -109,7 +109,8 @@ export default function ProductDetailView({ productId }: { productId: string }) 
   const isDvd = product.category === "DVD・ブルーレイ";
   const isRetiredRental = product.dealType === "レンタル落ち";
   // 発売日/レンタル開始日をまだ迎えていない(先行入荷はあり得るが、まだ客には出せない)。
-  const notYetAvailable = product.publishStatus === "予約受付中";
+  const notYetAvailable =
+    product.publishStatus === "予約受付中" || product.publishStatus === "発売前入荷";
   const reservationEligible = canReserve(product.category);
   const reservations = getReservationsForProduct(productId);
   // 発売後も引き渡し・キャンセルが済んでいない予約が残っていれば表示し続ける。
@@ -242,18 +243,13 @@ export default function ProductDetailView({ productId }: { productId: string }) 
     });
   }
 
-  function handleCancelReservation(id: string) {
-    const confirmed = window.confirm("この予約をキャンセルします。よろしいですか？");
-    if (!confirmed) return;
-    updateReservationStatus(id, "キャンセル");
-  }
-
-  function handleAdvanceReservation(reservation: Reservation) {
-    if (reservation.status === "予約中") {
-      updateReservationStatus(reservation.id, "引き渡し待ち");
-    } else if (reservation.status === "引き渡し待ち") {
-      updateReservationStatus(reservation.id, "引き渡し済み");
+  // 誤操作で進めすぎた場合も選び直せるよう、状態は常に自由に変更できるようにする。
+  function handleReservationStatusChange(reservation: Reservation, status: ReservationStatus) {
+    if (status === "キャンセル" && reservation.status !== "キャンセル") {
+      const confirmed = window.confirm("この予約をキャンセルします。よろしいですか？");
+      if (!confirmed) return;
     }
+    updateReservationStatus(reservation.id, status);
   }
 
   function handleReceiveStock() {
@@ -344,8 +340,9 @@ export default function ProductDetailView({ productId }: { productId: string }) 
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <DealTypeBadge dealType={product.dealType} />
-                {rentalEligible && <ReleaseStatusPill status={product.releaseStatus} />}
-                {product.cdType && <CdTypeBadge cdType={product.cdType} />}
+                {rentalEligible && (
+                  <ReleaseStatusPill status={product.releaseStatus} cdType={product.cdType} />
+                )}
                 {product.ageRating !== "指定なし" && (
                   <span className="inline-flex items-center rounded-full bg-rose-600 px-3 py-1 text-xs font-bold text-white">
                     {product.ageRating}
@@ -523,7 +520,6 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">氏名</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">電話番号</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">状態</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">操作</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -549,29 +545,22 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                           {reservation.phoneNumber || "-"}
                         </td>
                         <td className="px-3 py-2">
-                          <ReservationStatusBadge status={reservation.status} />
-                        </td>
-                        <td className="px-3 py-2">
-                          {isActiveReservationStatus(reservation.status) ? (
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleAdvanceReservation(reservation)}
-                                className="rounded-full border border-navy-300 px-3 py-1 text-xs font-semibold text-navy-700 hover:bg-navy-50"
-                              >
-                                {reservation.status === "予約中" ? "入荷済みにする" : "引き渡し済みにする"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleCancelReservation(reservation.id)}
-                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-500 hover:bg-rose-50"
-                              >
-                                キャンセル
-                              </button>
-                            </div>
-                          ) : (
-                            "-"
-                          )}
+                          <select
+                            value={reservation.status}
+                            onChange={(e) =>
+                              handleReservationStatusChange(
+                                reservation,
+                                e.target.value as ReservationStatus
+                              )
+                            }
+                            className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-navy-600 focus:outline-none"
+                          >
+                            {RESERVATION_STATUSES.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                       </tr>
                     ))}
@@ -739,18 +728,3 @@ function CopyStatusBadge({ status }: { status: string }) {
   );
 }
 
-function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
-  const styles: Record<ReservationStatus, string> = {
-    予約中: "bg-sky-100 text-sky-700",
-    引き渡し待ち: "bg-gold-400 text-navy-900",
-    引き渡し済み: "bg-purple-100 text-purple-700",
-    キャンセル: "bg-gray-100 text-gray-500",
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${styles[status]}`}
-    >
-      {status}
-    </span>
-  );
-}

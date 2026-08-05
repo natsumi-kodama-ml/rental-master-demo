@@ -1,14 +1,16 @@
 import { DealType, PublishStatus, isRentalDealType } from "@/lib/types";
 
 const STYLES: Record<PublishStatus, string> = {
-  販売中: "bg-emerald-100 text-emerald-700",
   予約受付中: "bg-sky-100 text-sky-700",
+  発売前入荷: "bg-amber-100 text-amber-700",
+  販売中: "bg-emerald-100 text-emerald-700",
   取扱終了: "bg-gray-100 text-gray-500",
 };
 
 const DOT: Record<PublishStatus, string> = {
-  販売中: "bg-emerald-500",
   予約受付中: "bg-sky-500",
+  発売前入荷: "bg-amber-500",
+  販売中: "bg-emerald-500",
   取扱終了: "bg-gray-400",
 };
 

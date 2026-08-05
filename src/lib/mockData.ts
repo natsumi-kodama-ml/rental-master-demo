@@ -624,6 +624,31 @@ export const mockProducts: Product[] = [
     createdAt: "2025-05-28T09:00:00.000Z",
     updatedAt: "2026-05-01T09:00:00.000Z",
   },
+  {
+    id: "22",
+    code: "RN-0022",
+    janCode: "4988001234769",
+    name: "サイバーレイダーズ 完全版",
+    category: "ゲーム",
+    genre: "アクションRPG",
+    maker: "テラフォームスタジオ",
+    platform: "Nintendo Switch",
+    // メーカーの発売日はまだ先だが、店舗には現物が先行入荷済み。
+    // 在庫はあるが発売日までは店頭に出せない(発売日厳守)。
+    releaseDate: "2026-08-20",
+    rentalStartDate: "",
+    subtitleLanguages: "",
+    audioLanguages: "",
+    ageRating: "指定なし",
+    cdType: null,
+    dealType: "新品",
+    publishStatus: "発売前入荷",
+    releaseStatus: null,
+    imageUrl: "",
+    notes: "",
+    createdAt: "2026-08-01T09:00:00.000Z",
+    updatedAt: "2026-08-01T09:00:00.000Z",
+  },
 ];
 
 export const mockInventory: Inventory[] = [
@@ -870,6 +895,16 @@ export const mockInventory: Inventory[] = [
     arrivedAt: "2026-05-01",
     updatedAt: "2026-05-01T09:00:00.000Z",
   },
+  {
+    productId: "22",
+    store: "本店",
+    stock: 15,
+    // 発売前のため販売価格・買取価格とも未設定。
+    salePrice: 0,
+    buybackPrice: 0,
+    arrivedAt: "2026-08-01",
+    updatedAt: "2026-08-01T09:00:00.000Z",
+  },
 ];
 
 // 個体(コピー): レンタル対象商品と中古販売対象商品(ゲーム中古)で、1点単位で持つ。
@@ -1029,4 +1064,5 @@ export const mockStockMovements: StockMovement[] = [
   { id: "sm8", productId: "19", type: "出庫", quantity: 1, reason: "破損", occurredAt: "2026-07-20" },
   { id: "sm9", productId: "20", type: "入荷", quantity: 10, reason: "", occurredAt: "2026-06-01" },
   { id: "sm10", productId: "21", type: "入荷", quantity: 6, reason: "", occurredAt: "2026-05-01" },
+  { id: "sm11", productId: "22", type: "入荷", quantity: 15, reason: "", occurredAt: "2026-08-01" },
 ];

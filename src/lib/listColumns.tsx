@@ -131,7 +131,7 @@ export const COLUMN_DEFS: ColumnDef[] = [
     label: "新作/準新作/旧作",
     render: (r) =>
       isRentalDealType(r.product.dealType) ? (
-        <ReleaseStatusPill status={r.product.releaseStatus} />
+        <ReleaseStatusPill status={r.product.releaseStatus} cdType={r.product.cdType} />
       ) : (
         <span className="text-xs text-gray-300">(対象外)</span>
       ),

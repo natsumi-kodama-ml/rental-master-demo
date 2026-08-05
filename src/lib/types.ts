@@ -10,7 +10,9 @@ export const DEAL_TYPES = ["新品", "中古", "レンタル", "レンタル落�
 
 export type DealType = (typeof DEAL_TYPES)[number];
 
-export const PUBLISH_STATUSES = ["販売中", "予約受付中", "取扱終了"] as const;
+// 発売前入荷: メーカーの発売日/レンタル開始日より前に店舗へ現物が届いている状態。
+// 在庫はあるが、まだ店頭に出して売る/貸すことはできない。
+export const PUBLISH_STATUSES = ["予約受付中", "発売前入荷", "販売中", "取扱終了"] as const;
 
 export type PublishStatus = (typeof PUBLISH_STATUSES)[number];
 
