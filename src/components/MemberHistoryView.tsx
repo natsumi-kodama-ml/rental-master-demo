@@ -14,6 +14,11 @@ function formatDateOnly(iso: string) {
   });
 }
 
+function isOverdue(dueDate: string): boolean {
+  if (!dueDate) return false;
+  return new Date(dueDate).getTime() < Date.now();
+}
+
 export default function MemberHistoryView({ memberId }: { memberId: string }) {
   const { getProduct } = useProducts();
   const { getCopy } = useCopies();
@@ -66,7 +71,15 @@ export default function MemberHistoryView({ memberId }: { memberId: string }) {
                         {formatDateOnly(log.rentedAt)}
                       </td>
                       <td className="px-3 py-2 text-gray-600">
-                        {log.returnedAt ? formatDateOnly(log.returnedAt) : "貸出中"}
+                        {log.returnedAt ? (
+                          formatDateOnly(log.returnedAt)
+                        ) : isOverdue(log.dueDate) ? (
+                          <span className="font-semibold text-rose-600">
+                            貸出中(延滞)
+                          </span>
+                        ) : (
+                          "貸出中"
+                        )}
                       </td>
                     </tr>
                   );
