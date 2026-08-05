@@ -123,7 +123,11 @@ export const COLUMN_DEFS: ColumnDef[] = [
     align: "right",
     render: (r) => {
       const count = getShelfStockCount(r);
-      return count === null ? "-" : String(count);
+      return count === null ? (
+        <span className="text-gray-300">-</span>
+      ) : (
+        String(count)
+      );
     },
     sortValue: (r) => getShelfStockCount(r) ?? -1,
   },
