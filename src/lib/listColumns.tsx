@@ -11,6 +11,7 @@ import PublishStatusBadge from "@/components/PublishStatusBadge";
 import ReleaseStatusPill from "@/components/ReleaseStatusPill";
 import DealTypeBadge from "@/components/DealTypeBadge";
 import CdTierBadge from "@/components/CdTierBadge";
+import ComicTierBadge from "@/components/ComicTierBadge";
 
 export interface ProductRow {
   product: Product;
@@ -119,24 +120,17 @@ export const COLUMN_DEFS: ColumnDef[] = [
     sortValue: (r) => r.product.releaseDate,
   },
   {
-    key: "releaseStatus",
-    label: "料金区分",
-    render: (r) => {
-      if (r.product.cdType) return <CdTierBadge cdType={r.product.cdType} />;
-      return isRentalDealType(r.product.dealType) ? (
-        <ReleaseStatusPill status={r.product.releaseStatus} />
-      ) : (
-        <span className="text-xs text-gray-300">-</span>
-      );
-    },
-    sortValue: (r) => r.product.cdType ?? r.product.releaseStatus ?? "",
-  },
-  {
     key: "totalStock",
     label: "在庫総数",
     align: "right",
     render: (r) => String(getStockCount(r)),
     sortValue: (r) => getStockCount(r),
+  },
+  {
+    key: "updatedAt",
+    label: "更新日",
+    render: (r) => formatDate(r.product.updatedAt),
+    sortValue: (r) => r.product.updatedAt,
   },
   {
     key: "shelfStock",
@@ -153,10 +147,20 @@ export const COLUMN_DEFS: ColumnDef[] = [
     sortValue: (r) => getShelfStockCount(r) ?? -1,
   },
   {
-    key: "updatedAt",
-    label: "更新日",
-    render: (r) => formatDate(r.product.updatedAt),
-    sortValue: (r) => r.product.updatedAt,
+    key: "releaseStatus",
+    label: "料金区分",
+    render: (r) => {
+      if (r.product.cdType) return <CdTierBadge cdType={r.product.cdType} />;
+      if (r.product.category === "コミック" && isRentalDealType(r.product.dealType)) {
+        return <ComicTierBadge />;
+      }
+      return isRentalDealType(r.product.dealType) ? (
+        <ReleaseStatusPill status={r.product.releaseStatus} />
+      ) : (
+        <span className="text-xs text-gray-300">-</span>
+      );
+    },
+    sortValue: (r) => r.product.cdType ?? r.product.releaseStatus ?? "",
   },
 ];
 

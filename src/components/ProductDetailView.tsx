@@ -28,6 +28,7 @@ import PublishStatusBadge from "./PublishStatusBadge";
 import ReleaseStatusPill from "./ReleaseStatusPill";
 import DealTypeBadge from "./DealTypeBadge";
 import CdTierBadge from "./CdTierBadge";
+import ComicTierBadge from "./ComicTierBadge";
 import ProductImage from "./ProductImage";
 
 function formatDateTime(iso: string) {
@@ -344,6 +345,7 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                 {rentalEligible && product.category !== "CD" && product.category !== "コミック" && (
                   <ReleaseStatusPill status={product.releaseStatus} />
                 )}
+                {rentalEligible && product.category === "コミック" && <ComicTierBadge />}
                 {product.cdType && <CdTierBadge cdType={product.cdType} />}
                 {product.ageRating !== "指定なし" && (
                   <span className="inline-flex items-center rounded-full bg-rose-600 px-3 py-1 text-xs font-bold text-white">
