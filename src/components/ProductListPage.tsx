@@ -42,11 +42,12 @@ export default function ProductListPage() {
 
   const filteredRows = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    return rows.filter(({ product }) => {
+    return rows.filter(({ product, copies: productCopies }) => {
       const matchesKeyword =
         keyword === "" ||
         product.name.toLowerCase().includes(keyword) ||
-        product.janCode.toLowerCase().includes(keyword);
+        product.janCode.toLowerCase().includes(keyword) ||
+        productCopies.some((c) => c.copyCode.toLowerCase().includes(keyword));
       const matchesCategory = category === "all" || product.category === category;
       const matchesGenre = genre === "all" || product.genre === genre;
       const matchesPublishStatus =

@@ -27,7 +27,7 @@ export default function ProductFilters({
     <div className="flex flex-wrap gap-3 rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex flex-col gap-1">
         <label htmlFor="search" className="text-xs font-medium text-gray-600">
-          検索(商品名・JANコード)
+          検索(商品名・JANコード・個体番号)
         </label>
         <input
           id="search"
