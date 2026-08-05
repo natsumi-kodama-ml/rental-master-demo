@@ -69,6 +69,14 @@ export const COLUMN_DEFS: ColumnDef[] = [
     sortValue: (r) => r.product.code,
   },
   {
+    key: "publishStatus",
+    label: "公開状態",
+    render: (r) => (
+      <PublishStatusBadge status={r.product.publishStatus} dealType={r.product.dealType} />
+    ),
+    sortValue: (r) => r.product.publishStatus,
+  },
+  {
     key: "category",
     label: "カテゴリ",
     render: (r) => r.product.category,
@@ -111,6 +119,19 @@ export const COLUMN_DEFS: ColumnDef[] = [
     sortValue: (r) => r.product.releaseDate,
   },
   {
+    key: "releaseStatus",
+    label: "料金区分",
+    render: (r) => {
+      if (r.product.cdType) return <CdTierBadge cdType={r.product.cdType} />;
+      return isRentalDealType(r.product.dealType) ? (
+        <ReleaseStatusPill status={r.product.releaseStatus} />
+      ) : (
+        <span className="text-xs text-gray-300">-</span>
+      );
+    },
+    sortValue: (r) => r.product.cdType ?? r.product.releaseStatus ?? "",
+  },
+  {
     key: "totalStock",
     label: "在庫総数",
     align: "right",
@@ -132,31 +153,10 @@ export const COLUMN_DEFS: ColumnDef[] = [
     sortValue: (r) => getShelfStockCount(r) ?? -1,
   },
   {
-    key: "releaseStatus",
-    label: "料金区分",
-    render: (r) => {
-      if (r.product.cdType) return <CdTierBadge cdType={r.product.cdType} />;
-      return isRentalDealType(r.product.dealType) ? (
-        <ReleaseStatusPill status={r.product.releaseStatus} />
-      ) : (
-        <span className="text-xs text-gray-300">-</span>
-      );
-    },
-    sortValue: (r) => r.product.cdType ?? r.product.releaseStatus ?? "",
-  },
-  {
     key: "updatedAt",
     label: "更新日",
     render: (r) => formatDate(r.product.updatedAt),
     sortValue: (r) => r.product.updatedAt,
-  },
-  {
-    key: "publishStatus",
-    label: "公開状態",
-    render: (r) => (
-      <PublishStatusBadge status={r.product.publishStatus} dealType={r.product.dealType} />
-    ),
-    sortValue: (r) => r.product.publishStatus,
   },
 ];
 
