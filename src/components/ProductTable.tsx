@@ -104,26 +104,23 @@ export default function ProductTable({
       <table className="w-full min-w-[760px] divide-y divide-gray-200 text-sm">
         <thead className="bg-navy-50">
           <tr>
-            <th className="sticky left-0 z-20 [will-change:transform] bg-navy-100 px-4 py-2.5">
-              <div className="flex w-10 items-center">
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={onToggleSelectAll}
-                  aria-label="すべて選択"
-                  className="h-4 w-4 rounded border-gray-300 accent-gold-400"
-                />
-              </div>
+            <th className="w-10 px-4 py-2.5">
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                checked={allSelected}
+                onChange={onToggleSelectAll}
+                aria-label="すべて選択"
+                className="h-4 w-4 rounded border-gray-300 accent-gold-400"
+              />
             </th>
             <SortableHeader
               sortKeyValue="name"
               active={sortKey === "name"}
               sortDir={sortDir}
               onSort={handleSort}
-              className="sticky left-10 z-20 [will-change:transform] bg-navy-100 shadow-[6px_0_8px_-4px_rgba(15,23,42,0.25)]"
             >
-              <div className="w-56 truncate">商品名</div>
+              商品名
             </SortableHeader>
             {columns.map((col) =>
               col.sortValue ? (
@@ -154,38 +151,23 @@ export default function ProductTable({
           {sortedRows.map((row) => (
             <tr
               key={row.product.id}
-              className={`group ${
-                selectedIds.has(row.product.id) ? "bg-gold-50" : "hover:bg-navy-50/40"
+              className={`hover:bg-navy-50/40 ${
+                selectedIds.has(row.product.id) ? "bg-gold-50" : ""
               }`}
             >
-              <td
-                className={`sticky left-0 z-10 [will-change:transform] px-4 py-2 ${
-                  selectedIds.has(row.product.id)
-                    ? "bg-gold-50"
-                    : "bg-slate-50 group-hover:bg-navy-100"
-                }`}
-              >
-                <div className="flex w-10 items-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(row.product.id)}
-                    onChange={() => onToggleSelect(row.product.id)}
-                    aria-label={`${row.product.name}を選択`}
-                    className="h-4 w-4 rounded border-gray-300 accent-gold-400"
-                  />
-                </div>
+              <td className="px-4 py-2">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(row.product.id)}
+                  onChange={() => onToggleSelect(row.product.id)}
+                  aria-label={`${row.product.name}を選択`}
+                  className="h-4 w-4 rounded border-gray-300 accent-gold-400"
+                />
               </td>
-              <td
-                className={`sticky left-10 z-10 [will-change:transform] px-4 py-2 shadow-[6px_0_8px_-4px_rgba(15,23,42,0.15)] ${
-                  selectedIds.has(row.product.id)
-                    ? "bg-gold-50"
-                    : "bg-slate-50 group-hover:bg-navy-100"
-                }`}
-              >
+              <td className="whitespace-nowrap px-4 py-2">
                 <Link
                   href={`/products/${row.product.id}`}
-                  className="block w-56 truncate font-medium text-navy-700 hover:underline"
-                  title={row.product.name}
+                  className="font-medium text-navy-700 hover:underline"
                 >
                   {row.product.name}
                 </Link>

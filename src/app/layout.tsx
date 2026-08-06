@@ -30,7 +30,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-slate-50">
         <header className="border-b-4 border-gold-400 bg-navy-700">
-          <div className="mx-auto max-w-[1600px] px-6 py-4">
+          <div className="mx-auto max-w-full px-6 py-4">
             <Link
               href="/"
               className="text-base font-bold tracking-wide text-white"
@@ -39,7 +39,7 @@ export default function RootLayout({
             </Link>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] flex-1 p-6">{children}</main>
+        <main className="mx-auto w-full max-w-full flex-1 p-6">{children}</main>
       </body>
     </html>
   );
