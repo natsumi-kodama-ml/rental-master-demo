@@ -105,13 +105,7 @@ export default function MemberHistoryView({ memberId }: { memberId: string }) {
                         {formatDateOnly(log.rentedAt)}
                       </td>
                       <td className="px-3 py-2 text-gray-600">
-                        {!log.returnedAt && isOverdue(log.dueDate) ? (
-                          <span className="font-semibold text-rose-600">
-                            {formatDateOnly(log.dueDate)}(延滞)
-                          </span>
-                        ) : (
-                          formatDateOnly(log.dueDate)
-                        )}
+                        {formatDateOnly(log.dueDate)}
                       </td>
                       <td className="px-3 py-2 text-gray-600">
                         {log.returnedAt ? formatDateOnly(log.returnedAt) : "-"}
