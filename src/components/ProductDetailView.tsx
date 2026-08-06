@@ -645,7 +645,10 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                                 ))}
                               </select>
                             ) : (
-                              <CopyStatusBadge status={copy.status} />
+                              <CopyStatusBadge
+                                status={copy.status}
+                                overdue={!!openLog && isOverdue(openLog.dueDate)}
+                              />
                             )}
                           </td>
                           {rentalEligible ? (
@@ -662,20 +665,8 @@ export default function ProductDetailView({ productId }: { productId: string }) 
                                   "-"
                                 )}
                               </td>
-                              <td className="px-3 py-2">
-                                {openLog ? (
-                                  isOverdue(openLog.dueDate) ? (
-                                    <span className="font-semibold text-rose-600">
-                                      {formatDateOnly(openLog.dueDate)}(延滞)
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-600">
-                                      {formatDateOnly(openLog.dueDate)}
-                                    </span>
-                                  )
-                                ) : (
-                                  <span className="text-gray-600">-</span>
-                                )}
+                              <td className="px-3 py-2 text-gray-600">
+                                {openLog ? formatDateOnly(openLog.dueDate) : "-"}
                               </td>
                             </>
                           ) : (
@@ -709,7 +700,14 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CopyStatusBadge({ status }: { status: string }) {
+function CopyStatusBadge({ status, overdue }: { status: string; overdue?: boolean }) {
+  if (status === "貸出中" && overdue) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-600">
+        貸出中(延滞)
+      </span>
+    );
+  }
   const styles: Record<string, string> = {
     在庫: "bg-emerald-100 text-emerald-700",
     レンタル落ち: "bg-amber-100 text-amber-700",
