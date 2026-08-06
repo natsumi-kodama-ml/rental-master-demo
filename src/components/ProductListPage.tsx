@@ -26,6 +26,8 @@ export default function ProductListPage() {
   const { filters, setFilters, resetFilters } = useFilterPrefs();
   const { search, category, genre, publishStatus } = filters;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [pageSize, setPageSize] = useState(20);
+  const [page, setPage] = useState(1);
 
   const rows: ProductRow[] = useMemo(
     () =>
@@ -68,6 +70,22 @@ export default function ProductListPage() {
     genre !== "all" ||
     publishStatus !== "active";
 
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRows = filteredRows.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  // 絞り込み条件やページサイズが変わったら1ページ目に戻す
+  // (レンダー中にstateを調整する: https://react.dev/learn/you-might-not-need-an-effect)。
+  const filterKey = `${search}|${category}|${genre}|${publishStatus}|${pageSize}`;
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey);
+  if (filterKey !== lastFilterKey) {
+    setLastFilterKey(filterKey);
+    setPage(1);
+  }
+
   function clearSelection() {
     setSelectedIds(new Set());
   }
@@ -87,10 +105,10 @@ export default function ProductListPage() {
   function toggleSelectAll() {
     setSelectedIds((prev) => {
       const allSelected =
-        filteredRows.length > 0 &&
-        filteredRows.every((r) => prev.has(r.product.id));
+        pagedRows.length > 0 &&
+        pagedRows.every((r) => prev.has(r.product.id));
       const next = new Set(prev);
-      filteredRows.forEach((r) => {
+      pagedRows.forEach((r) => {
         if (allSelected) {
           next.delete(r.product.id);
         } else {
@@ -142,8 +160,28 @@ export default function ProductListPage() {
       />
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-400">{filteredRows.length}件表示中</p>
-        <ColumnSettings />
+        <p className="text-xs text-gray-400">
+          {filteredRows.length}件中{" "}
+          {filteredRows.length === 0
+            ? 0
+            : (currentPage - 1) * pageSize + 1}
+          -{Math.min(currentPage * pageSize, filteredRows.length)}件を表示中
+        </p>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1.5 text-xs text-gray-500">
+            表示件数
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-navy-600 focus:outline-none"
+            >
+              <option value={20}>20件</option>
+              <option value={50}>50件</option>
+              <option value={100}>100件</option>
+            </select>
+          </label>
+          <ColumnSettings />
+        </div>
       </div>
 
       {selectedIds.size > 0 && (
@@ -187,13 +225,38 @@ export default function ProductListPage() {
           )}
         </div>
       ) : (
-        <ProductTable
-          rows={filteredRows}
-          visibleColumns={visibleColumns}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAll}
-        />
+        <>
+          <ProductTable
+            rows={pagedRows}
+            visibleColumns={visibleColumns}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+          />
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ← 前へ
+              </button>
+              <span className="text-xs text-gray-500">
+                {currentPage} / {totalPages} ページ
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="rounded-full border border-gray-300 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                次へ →
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
