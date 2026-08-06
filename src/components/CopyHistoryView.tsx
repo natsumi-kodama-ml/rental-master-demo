@@ -69,6 +69,7 @@ export default function CopyHistoryView({ copyId }: { copyId: string }) {
               <thead className="bg-navy-50">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">会員ID</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">状態</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">貸出日</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">返却予定日</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-navy-700">返却日</th>
@@ -84,6 +85,21 @@ export default function CopyHistoryView({ copyId }: { copyId: string }) {
                       >
                         {log.memberId}
                       </Link>
+                    </td>
+                    <td className="px-3 py-2">
+                      {log.returnedAt ? (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500">
+                          返却済み
+                        </span>
+                      ) : isOverdue(log.dueDate) ? (
+                        <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-600">
+                          貸出中(延滞)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-gold-400 px-2.5 py-0.5 text-xs font-semibold text-navy-900">
+                          貸出中
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-gray-600">{formatDateOnly(log.rentedAt)}</td>
                     <td className="px-3 py-2 text-gray-600">
