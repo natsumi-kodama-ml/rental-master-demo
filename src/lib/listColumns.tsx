@@ -62,6 +62,18 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("ja-JP");
 }
 
+// 列の並び順は「どのくらい頻繁に必要になるか」で決めている。
+// - 商品コード/公開状態: 一覧をスキャンして稼働中かどうかを最初に見るための列。
+// - カテゴリ/区分/料金区分/対応機種・メディア/ジャンル/メーカー・発売元:
+//   店内のどの棚に置いてあるか(新作コーナーか通常棚か等)を特定するための情報。
+//   料金区分(新作/準新作/旧作、CDのアルバム新作/旧作/シングル)は棚の配置自体に
+//   直結するため、単なる料金情報ではなくこのグループに含める。
+// - JANコード/発売日: 上記より使う頻度は低いが一覧に残す。
+// - 在庫総数: お客様からよく聞かれる+続き物で何巻まで貸出中か横断で見たいため
+//   一覧に置く。
+// - 更新日/店頭在庫(貸出可能数): レンタル商品限定など参照頻度が低い情報。
+// 販売価格・買取価格・対応言語・返却日などのさらに突っ込んだ情報は、聞かれる
+// 頻度が低いため一覧には出さず商品詳細ページのみに置く。
 export const COLUMN_DEFS: ColumnDef[] = [
   {
     key: "code",
@@ -88,6 +100,22 @@ export const COLUMN_DEFS: ColumnDef[] = [
     label: "区分",
     render: (r) => <DealTypeBadge dealType={r.product.dealType} />,
     sortValue: (r) => r.product.dealType,
+  },
+  {
+    key: "releaseStatus",
+    label: "料金区分",
+    render: (r) => {
+      if (r.product.cdType) return <CdTierBadge cdType={r.product.cdType} />;
+      if (r.product.category === "コミック" && isRentalDealType(r.product.dealType)) {
+        return <ComicTierBadge />;
+      }
+      return isRentalDealType(r.product.dealType) ? (
+        <ReleaseStatusPill status={r.product.releaseStatus} />
+      ) : (
+        <span className="text-xs text-gray-300">-</span>
+      );
+    },
+    sortValue: (r) => r.product.cdType ?? r.product.releaseStatus ?? "",
   },
   {
     key: "platform",
@@ -145,22 +173,6 @@ export const COLUMN_DEFS: ColumnDef[] = [
       );
     },
     sortValue: (r) => getShelfStockCount(r) ?? -1,
-  },
-  {
-    key: "releaseStatus",
-    label: "料金区分",
-    render: (r) => {
-      if (r.product.cdType) return <CdTierBadge cdType={r.product.cdType} />;
-      if (r.product.category === "コミック" && isRentalDealType(r.product.dealType)) {
-        return <ComicTierBadge />;
-      }
-      return isRentalDealType(r.product.dealType) ? (
-        <ReleaseStatusPill status={r.product.releaseStatus} />
-      ) : (
-        <span className="text-xs text-gray-300">-</span>
-      );
-    },
-    sortValue: (r) => r.product.cdType ?? r.product.releaseStatus ?? "",
   },
 ];
 

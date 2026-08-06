@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useProducts } from "@/hooks/useProducts";
 import { useCopies } from "@/hooks/useCopies";
 import { useRentalLogs } from "@/hooks/useRentalLogs";
@@ -20,6 +21,7 @@ function isOverdue(dueDate: string): boolean {
 }
 
 export default function CopyHistoryView({ copyId }: { copyId: string }) {
+  const router = useRouter();
   const { getProduct } = useProducts();
   const { getCopy } = useCopies();
   const { getLogsForCopy } = useRentalLogs();
@@ -32,27 +34,26 @@ export default function CopyHistoryView({ copyId }: { copyId: string }) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-gray-600">個体が見つかりませんでした。</p>
-        <Link href="/" className="text-sm text-navy-700 hover:underline">
-          一覧に戻る
-        </Link>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="w-fit text-sm text-navy-700 hover:underline"
+        >
+          ← 戻る
+        </button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {product ? (
-        <Link
-          href={`/products/${product.id}`}
-          className="w-fit text-sm font-medium text-navy-700 hover:underline"
-        >
-          ← {product.name} に戻る
-        </Link>
-      ) : (
-        <Link href="/" className="w-fit text-sm font-medium text-navy-700 hover:underline">
-          ← 一覧に戻る
-        </Link>
-      )}
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="w-fit text-sm font-medium text-navy-700 hover:underline"
+      >
+        ← 戻る
+      </button>
 
       <div className="rounded-lg border border-gray-200 bg-white p-6">
         <h1 className="text-xl font-bold text-navy-900">{copy.copyCode} の貸出履歴</h1>
