@@ -5,10 +5,13 @@
   --foreground: #171717;
   --color-navy-50: #eef1f8;
   --color-navy-100: #d6ddef;
+  --color-navy-200: #b8c4e3;
+  --color-navy-300: #93a3d1;
   --color-navy-600: #24356c;
   --color-navy-700: #192b5b;
   --color-navy-800: #14224a;
   --color-navy-900: #0e1935;
+  --color-gold-50: #fffbe6;
   --color-gold-300: #ffe873;
   --color-gold-400: #fed600;
   --color-gold-500: #e0bd00;
@@ -19,10 +22,13 @@
   --color-foreground: var(--foreground);
   --color-navy-50: var(--color-navy-50);
   --color-navy-100: var(--color-navy-100);
+  --color-navy-200: var(--color-navy-200);
+  --color-navy-300: var(--color-navy-300);
   --color-navy-600: var(--color-navy-600);
   --color-navy-700: var(--color-navy-700);
   --color-navy-800: var(--color-navy-800);
   --color-navy-900: var(--color-navy-900);
+  --color-gold-50: var(--color-gold-50);
   --color-gold-300: var(--color-gold-300);
   --color-gold-400: var(--color-gold-400);
   --color-gold-500: var(--color-gold-500);

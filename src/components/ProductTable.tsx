@@ -104,7 +104,7 @@ export default function ProductTable({
       <table className="w-full min-w-[760px] divide-y divide-gray-200 text-sm">
         <thead className="bg-navy-50">
           <tr>
-            <th className="sticky left-0 z-20 bg-navy-50 px-4 py-2.5">
+            <th className="sticky left-0 z-20 [will-change:transform] bg-navy-100 px-4 py-2.5">
               <div className="flex w-10 items-center">
                 <input
                   ref={selectAllRef}
@@ -121,7 +121,7 @@ export default function ProductTable({
               active={sortKey === "name"}
               sortDir={sortDir}
               onSort={handleSort}
-              className="sticky left-10 z-20 border-r border-gray-300 bg-navy-50 shadow-[6px_0_8px_-4px_rgba(15,23,42,0.25)]"
+              className="sticky left-10 z-20 [will-change:transform] bg-navy-100 shadow-[6px_0_8px_-4px_rgba(15,23,42,0.25)]"
             >
               <div className="w-56 truncate">商品名</div>
             </SortableHeader>
@@ -159,10 +159,10 @@ export default function ProductTable({
               }`}
             >
               <td
-                className={`sticky left-0 z-10 px-4 py-2 ${
+                className={`sticky left-0 z-10 [will-change:transform] px-4 py-2 ${
                   selectedIds.has(row.product.id)
                     ? "bg-gold-50"
-                    : "bg-white group-hover:bg-navy-50/40"
+                    : "bg-slate-50 group-hover:bg-navy-100"
                 }`}
               >
                 <div className="flex w-10 items-center">
@@ -176,10 +176,10 @@ export default function ProductTable({
                 </div>
               </td>
               <td
-                className={`sticky left-10 z-10 border-r border-gray-300 px-4 py-2 shadow-[6px_0_8px_-4px_rgba(15,23,42,0.15)] ${
+                className={`sticky left-10 z-10 [will-change:transform] px-4 py-2 shadow-[6px_0_8px_-4px_rgba(15,23,42,0.15)] ${
                   selectedIds.has(row.product.id)
                     ? "bg-gold-50"
-                    : "bg-white group-hover:bg-navy-50/40"
+                    : "bg-slate-50 group-hover:bg-navy-100"
                 }`}
               >
                 <Link
