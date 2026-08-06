@@ -14,6 +14,7 @@ function SortableHeader({
   sortDir,
   onSort,
   children,
+  className,
 }: {
   sortKeyValue: SortKey;
   align?: "left" | "right";
@@ -21,12 +22,13 @@ function SortableHeader({
   sortDir: SortDir;
   onSort: (key: SortKey) => void;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <th
       className={`whitespace-nowrap px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-navy-700 ${
         align === "right" ? "text-right" : "text-left"
-      }`}
+      } ${className ?? ""}`}
     >
       <button
         type="button"
@@ -102,7 +104,7 @@ export default function ProductTable({
       <table className="w-full min-w-[760px] divide-y divide-gray-200 text-sm">
         <thead className="bg-navy-50">
           <tr>
-            <th className="w-10 px-4 py-2.5">
+            <th className="sticky left-0 z-20 w-10 bg-navy-50 px-4 py-2.5">
               <input
                 ref={selectAllRef}
                 type="checkbox"
@@ -117,6 +119,7 @@ export default function ProductTable({
               active={sortKey === "name"}
               sortDir={sortDir}
               onSort={handleSort}
+              className="sticky left-10 z-20 w-56 border-r border-gray-200 bg-navy-50"
             >
               商品名
             </SortableHeader>
@@ -149,11 +152,17 @@ export default function ProductTable({
           {sortedRows.map((row) => (
             <tr
               key={row.product.id}
-              className={`hover:bg-navy-50/40 ${
-                selectedIds.has(row.product.id) ? "bg-gold-50" : ""
+              className={`group ${
+                selectedIds.has(row.product.id) ? "bg-gold-50" : "hover:bg-navy-50/40"
               }`}
             >
-              <td className="px-4 py-2">
+              <td
+                className={`sticky left-0 z-10 px-4 py-2 ${
+                  selectedIds.has(row.product.id)
+                    ? "bg-gold-50"
+                    : "bg-white group-hover:bg-navy-50/40"
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={selectedIds.has(row.product.id)}
@@ -162,10 +171,17 @@ export default function ProductTable({
                   className="h-4 w-4 rounded border-gray-300 accent-gold-400"
                 />
               </td>
-              <td className="whitespace-nowrap px-4 py-2">
+              <td
+                className={`sticky left-10 z-10 w-56 truncate border-r border-gray-200 px-4 py-2 ${
+                  selectedIds.has(row.product.id)
+                    ? "bg-gold-50"
+                    : "bg-white group-hover:bg-navy-50/40"
+                }`}
+              >
                 <Link
                   href={`/products/${row.product.id}`}
                   className="font-medium text-navy-700 hover:underline"
+                  title={row.product.name}
                 >
                   {row.product.name}
                 </Link>
