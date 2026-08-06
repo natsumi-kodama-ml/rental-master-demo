@@ -113,7 +113,7 @@ export default function ProductDetailView({ productId }: { productId: string }) 
   // 発売日/レンタル開始日をまだ迎えていない(先行入荷はあり得るが、まだ客には出せない)。
   const notYetAvailable =
     product.publishStatus === "予約受付中" || product.publishStatus === "発売前入荷";
-  const reservationEligible = canReserve(product.category);
+  const reservationEligible = canReserve(product.category, product.dealType);
   const reservations = getReservationsForProduct(productId);
   // 発売後も引き渡し・キャンセルが済んでいない予約が残っていれば表示し続ける。
   const hasActiveReservations = reservations.some((r) => isActiveReservationStatus(r.status));
@@ -211,12 +211,13 @@ export default function ProductDetailView({ productId }: { productId: string }) 
       return;
     }
     let condition = "";
-    if (!rentalEligible) {
+    if (!rentalEligible && !isRetiredRental) {
       condition = window.prompt("コンディションを入力してください(例: 美品, 中古A)", "") ?? "";
     }
     // 発売日/レンタル開始日を迎える前の先行入荷は、届いてもすぐ客に出せるわけ
     // ではないため「点検中」で登録し、当日を迎えたらスタッフが切り替える。
-    const readyStatus = rentalEligible ? "貸出可能" : "在庫";
+    // レンタル落ちは個体ごとのコンディションを記録しない(中古とは別区分)。
+    const readyStatus = rentalEligible ? "貸出可能" : isRetiredRental ? "レンタル落ち" : "在庫";
     const startIndex = copies.length + 1;
     for (let i = 0; i < count; i++) {
       const seq = startIndex + i;
@@ -250,6 +251,14 @@ export default function ProductDetailView({ productId }: { productId: string }) 
     if (status === "キャンセル" && reservation.status !== "キャンセル") {
       const confirmed = window.confirm("この予約をキャンセルします。よろしいですか？");
       if (!confirmed) return;
+    }
+    if (
+      (status === "引き渡し待ち" || status === "引き渡し済み") &&
+      reservation.status !== status &&
+      (unitTracked ? activeCount : (inventory?.stock ?? 0)) <= 0
+    ) {
+      window.alert("在庫がまだないため、この状態には変更できません。入荷後に変更してください。");
+      return;
     }
     updateReservationStatus(reservation.id, status);
   }

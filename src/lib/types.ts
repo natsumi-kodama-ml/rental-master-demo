@@ -52,10 +52,10 @@ export function canSellRetiredCopies(category: Category): boolean {
   return category === "DVD・ブルーレイ";
 }
 
-// 予約受付を行うのはゲームの新品予約のみ。DVD・CD・コミックは
-// 発売前/レンタル開始前でも正式な予約受付は行わない。
-export function canReserve(category: Category): boolean {
-  return category === "ゲーム";
+// 予約受付を行うのはゲームの新品予約のみ。中古・レンタル落ちの予約や、
+// DVD・CD・コミックの発売前/レンタル開始前の予約は正式には受け付けない。
+export function canReserve(category: Category, dealType: DealType): boolean {
+  return category === "ゲーム" && dealType === "新品";
 }
 
 // 新品は個体ごとの差がないため個体管理は不要。中古は個体ごとにコンディションが
